@@ -4,81 +4,67 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Min Gym App</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <h1>Min Gym App</h1>
-        <p>Träningsupplägg, dagens pass, historik och PB.</p>
-      </div>
-      <button id="resetDataBtn" class="ghost danger" title="Raderar all lokal testdata">Rensa data</button>
+    <header class="app-header">
+      <div class="app-icon">💪</div>
+      <h1>Min Gym App</h1>
+      <p class="version">v1.3</p>
     </header>
 
     <nav class="tabs" aria-label="Huvudmeny">
-      <button class="tab active" data-view="todayView">Dagens pass</button>
-      <button class="tab" data-view="plansView">Upplägg</button>
-      <button class="tab" data-view="historyView">Historik</button>
-      <button class="tab" data-view="pbView">PB</button>
+      <button class="tab active" data-tab="today">🏋️ Pass</button>
+      <button class="tab" data-tab="plans">📋 Upplägg</button>
+      <button class="tab" data-tab="history">📅 Historik</button>
+      <button class="tab" data-tab="pb">🏆 PB</button>
     </nav>
 
     <main>
-      <section id="todayView" class="view active-view">
-        <div class="card">
+      <section id="today" class="view active">
+        <div class="card hero-card">
           <h2>Dagens pass</h2>
-          <p class="muted">Välj ett sparat upplägg. Appen kopierar standardvikter och reps till dagens pass, så att du bara ändrar det som avviker.</p>
-          <div class="row gap">
-            <select id="todayPlanSelect"></select>
-            <button id="startSessionBtn">Starta pass</button>
-          </div>
+          <p class="muted">Välj ett upplägg och starta dagens träning.</p>
+          <label for="workoutSelect">Välj upplägg</label>
+          <select id="workoutSelect"></select>
+          <button id="startSessionBtn" class="primary">Starta pass</button>
         </div>
-        <div id="activeSessionArea"></div>
+        <div id="activeSession" class="session-area"></div>
       </section>
 
-      <section id="plansView" class="view">
+      <section id="plans" class="view">
         <div class="card">
           <h2>Upplägg</h2>
-          <p class="muted">Här skapar och redigerar du dina standardupplägg. Klicka på Spara upplägg när du är klar.</p>
-          <label for="planNameInput">Namn på upplägg</label>
-          <div class="row gap">
-            <input id="planNameInput" type="text" placeholder="Exempel: Upplägg 1" />
-            <button id="newPlanBtn">Nytt upplägg</button>
-          </div>
+          <p class="muted">Skapa och redigera dina standardvikter.</p>
+          <label for="planName">Namn på upplägg</label>
+          <input id="planName" type="text" placeholder="Exempel: Upplägg 1" />
+          <button id="newPlanBtn" class="secondary">Skapa nytt upplägg</button>
         </div>
-
-        <div id="planEditorArea"></div>
-        <div id="plansListArea"></div>
+        <div id="planEditor"></div>
+        <div id="plansList"></div>
       </section>
 
-      <section id="historyView" class="view">
+      <section id="history" class="view">
         <div class="card">
           <h2>Historik</h2>
-          <p class="muted">Här visas sparade pass med faktiska vikter och reps.</p>
+          <p class="muted">Här visas sparade träningspass.</p>
         </div>
-        <div id="historyListArea"></div>
+        <div id="historyList"></div>
       </section>
 
-      <section id="pbView" class="view">
-        <div class="card">
-          <h2>PB</h2>
-          <p class="muted">Visar tyngsta vikt per övning från sparade pass.</p>
+      <section id="pb" class="view">
+        <div class="card trophy-card">
+          <h2>🏆 Personbästa</h2>
+          <p class="muted">Tyngsta vikt per övning baserat på historiken.</p>
         </div>
-        <div id="pbListArea"></div>
+        <div id="pbList"></div>
       </section>
     </main>
   </div>
-
-  <template id="exerciseTemplate">
-    <div class="exercise-block">
-      <div class="exercise-header">
-        <input class="exercise-name" type="text" placeholder="Övning, t.ex. Marklyft" />
-        <button class="ghost danger remove-exercise-btn">Ta bort</button>
-      </div>
-      <div class="sets"></div>
-      <button class="ghost add-set-btn">+ Lägg till set</button>
-    </div>
-  </template>
 
   <script src="app.js"></script>
 </body>

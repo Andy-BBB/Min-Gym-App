@@ -1,6 +1,15 @@
-# Min Gym App
+# Min Gym App v1.3
 
-En enkel träningsapp byggd med HTML, CSS och JavaScript.
+En privat träningsapp byggd med HTML, CSS och JavaScript.
+
+## Nytt i v1.3
+
+- Svart/vit design
+- Versionsnummer under rubriken
+- Fliknavigering med tydligare design
+- Kortbaserad layout
+- PWA-manifest
+- Hemskärmsikon med muskelarm
 
 ## Funktioner
 
@@ -8,21 +17,8 @@ En enkel träningsapp byggd med HTML, CSS och JavaScript.
 - Upplägg
 - Historik
 - PB/personbästa
-- Flera set per övning
-- Ändra vikt och reps för dagens pass utan att ändra standardupplägget
-- Uppdatera standardupplägg per övning efter pass
-- Sparar lokalt i webbläsaren med LocalStorage
+- Lokal lagring i webbläsaren via LocalStorage
 
-## Testa lokalt
+## Publicering
 
-Dubbelklicka på `index.html` och öppna i Chrome.
-
-## Ladda upp till GitHub
-
-Ladda upp dessa filer till ditt repository:
-
-- `index.html`
-- `style.css`
-- `app.js`
-- `README.md`
-
+Ladda upp filerna till GitHub och använd GitHub Pages.

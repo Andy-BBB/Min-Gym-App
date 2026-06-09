@@ -1,27 +1,17 @@
-const STORAGE_KEY = 'minGymApp.v12';
+const VERSION = "1.3";
+const STORAGE_KEY = "minGymAppData_v13";
 
-let state = loadState();
+const state = loadState();
 let editingPlanId = null;
 let activeSession = null;
 
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-
 function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
 function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch (error) {
-    console.warn('Kunde inte läsa sparad data', error);
-  }
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return JSON.parse(saved);
   return { plans: [], sessions: [] };
 }
 
@@ -29,376 +19,337 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function switchView(viewId) {
-  $$('.view').forEach(v => v.classList.remove('active-view'));
-  $$('.tab').forEach(t => t.classList.remove('active'));
-  $(`#${viewId}`).classList.add('active-view');
-  $(`.tab[data-view="${viewId}"]`).classList.add('active');
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function el(id) { return document.getElementById(id); }
+
+function switchTab(tabId) {
+  document.querySelectorAll(".tab").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabId));
+  document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === tabId));
   renderAll();
 }
 
-function renderAll() {
-  renderPlanSelect();
-  renderPlanEditor();
-  renderPlansList();
-  renderActiveSession();
-  renderHistory();
-  renderPB();
+document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+el("newPlanBtn").addEventListener("click", createPlan);
+el("startSessionBtn").addEventListener("click", startSession);
+
+function createPlan() {
+  const name = el("planName").value.trim();
+  if (!name) return alert("Skriv ett namn på upplägget först.");
+  const plan = { id: uid(), name, exercises: [] };
+  state.plans.push(plan);
+  editingPlanId = plan.id;
+  el("planName").value = "";
+  saveState();
+  renderAll();
 }
 
-function renderPlanSelect() {
-  const select = $('#todayPlanSelect');
-  select.innerHTML = '';
-  if (state.plans.length === 0) {
-    select.innerHTML = '<option>Inga upplägg ännu</option>';
-    $('#startSessionBtn').disabled = true;
+function renderWorkoutSelect() {
+  const select = el("workoutSelect");
+  select.innerHTML = "";
+  if (!state.plans.length) {
+    select.innerHTML = '<option value="">Inga upplägg skapade ännu</option>';
     return;
   }
-  $('#startSessionBtn').disabled = false;
   state.plans.forEach(plan => {
-    const option = document.createElement('option');
+    const option = document.createElement("option");
     option.value = plan.id;
     option.textContent = plan.name;
     select.appendChild(option);
   });
 }
 
-function renderPlanEditor() {
-  const area = $('#planEditorArea');
-  if (!editingPlanId) {
-    area.innerHTML = '';
-    return;
-  }
-  const plan = state.plans.find(p => p.id === editingPlanId);
-  if (!plan) {
-    editingPlanId = null;
-    area.innerHTML = '';
-    return;
-  }
-
-  area.innerHTML = `
-    <div class="card">
-      <div class="plan-actions">
-        <div>
-          <h2>Redigera upplägg</h2>
-          <p class="muted">Ändringar sparas när du klickar på Spara upplägg.</p>
-        </div>
-        <button id="savePlanBtn">Spara upplägg</button>
-      </div>
-      <label>Namn</label>
-      <input id="editingPlanName" type="text" value="${escapeHtml(plan.name)}" />
-      <div id="editingExercises"></div>
-      <button id="addExerciseBtn" class="ghost">+ Lägg till övning</button>
-    </div>
-  `;
-
-  const exerciseArea = $('#editingExercises');
-  plan.exercises.forEach((exercise, exerciseIndex) => {
-    exerciseArea.appendChild(createExerciseEditor(exercise, exerciseIndex));
-  });
-
-  $('#editingPlanName').addEventListener('input', (e) => {
-    plan.name = e.target.value;
-  });
-
-  $('#addExerciseBtn').addEventListener('click', () => {
-    plan.exercises.push({ id: uid(), name: '', sets: [{ id: uid(), weight: '', reps: '' }] });
-    renderPlanEditor();
-  });
-
-  $('#savePlanBtn').addEventListener('click', () => {
-    plan.name = $('#editingPlanName').value.trim() || 'Namnlöst upplägg';
-    plan.exercises = plan.exercises
-      .map(ex => ({
-        ...ex,
-        name: ex.name.trim() || 'Namnlös övning',
-        sets: ex.sets.filter(s => s.weight !== '' || s.reps !== '')
-      }))
-      .filter(ex => ex.sets.length > 0);
-    saveState();
-    editingPlanId = null;
-    renderAll();
-    switchView('plansView');
-  });
-}
-
-function createExerciseEditor(exercise, exerciseIndex) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'exercise-block';
-  wrapper.innerHTML = `
-    <div class="exercise-header">
-      <input class="exercise-name" type="text" value="${escapeHtml(exercise.name)}" placeholder="Övning, t.ex. Marklyft" />
-      <button class="ghost danger remove-exercise-btn">Ta bort</button>
-    </div>
-    <div class="sets"></div>
-    <button class="ghost add-set-btn">+ Lägg till set</button>
-  `;
-
-  const plan = state.plans.find(p => p.id === editingPlanId);
-  const setsArea = wrapper.querySelector('.sets');
-
-  exercise.sets.forEach((set, setIndex) => {
-    const row = document.createElement('div');
-    row.className = 'set-row';
-    row.innerHTML = `
-      <div class="set-number">${setIndex + 1}</div>
-      <input type="number" inputmode="decimal" placeholder="Vikt kg" value="${escapeHtml(set.weight)}" />
-      <input type="number" inputmode="numeric" placeholder="Reps" value="${escapeHtml(set.reps)}" />
-      <button class="ghost danger">Ta bort</button>
-    `;
-    const [weightInput, repsInput] = row.querySelectorAll('input');
-    weightInput.addEventListener('input', e => set.weight = e.target.value);
-    repsInput.addEventListener('input', e => set.reps = e.target.value);
-    row.querySelector('button').addEventListener('click', () => {
-      exercise.sets.splice(setIndex, 1);
-      if (exercise.sets.length === 0) exercise.sets.push({ id: uid(), weight: '', reps: '' });
-      renderPlanEditor();
-    });
-    setsArea.appendChild(row);
-  });
-
-  wrapper.querySelector('.exercise-name').addEventListener('input', e => exercise.name = e.target.value);
-  wrapper.querySelector('.remove-exercise-btn').addEventListener('click', () => {
-    plan.exercises.splice(exerciseIndex, 1);
-    renderPlanEditor();
-  });
-  wrapper.querySelector('.add-set-btn').addEventListener('click', () => {
-    exercise.sets.push({ id: uid(), weight: '', reps: '' });
-    renderPlanEditor();
-  });
-
-  return wrapper;
-}
-
 function renderPlansList() {
-  const area = $('#plansListArea');
-  if (state.plans.length === 0) {
-    area.innerHTML = '<div class="card"><p>Du har inga upplägg ännu. Skapa ditt första ovan.</p></div>';
+  const container = el("plansList");
+  if (!state.plans.length) {
+    container.innerHTML = '<div class="card empty">Inga upplägg ännu. Skapa ditt första upplägg ovan.</div>';
     return;
   }
-
-  area.innerHTML = state.plans.map(plan => `
-    <div class="card">
-      <div class="plan-actions">
-        <div>
-          <h3>${escapeHtml(plan.name)}</h3>
-          <p class="muted">${plan.exercises.length} övningar</p>
-        </div>
-        <div class="row gap">
-          <button class="ghost edit-plan" data-id="${plan.id}">Redigera</button>
-          <button class="ghost danger delete-plan" data-id="${plan.id}">Ta bort</button>
-        </div>
+  container.innerHTML = state.plans.map(plan => `
+    <div class="list-item">
+      <h3>${escapeHtml(plan.name)}</h3>
+      <p class="muted">${plan.exercises.length} övning(ar)</p>
+      <div class="inline-actions">
+        <button class="secondary" onclick="editPlan('${plan.id}')">Redigera</button>
+        <button class="danger" onclick="deletePlan('${plan.id}')">Ta bort</button>
       </div>
-      ${renderPlanSummary(plan)}
     </div>
-  `).join('');
-
-  $$('.edit-plan').forEach(btn => btn.addEventListener('click', () => {
-    editingPlanId = btn.dataset.id;
-    renderAll();
-  }));
-
-  $$('.delete-plan').forEach(btn => btn.addEventListener('click', () => {
-    if (confirm('Vill du ta bort upplägget?')) {
-      state.plans = state.plans.filter(p => p.id !== btn.dataset.id);
-      saveState();
-      renderAll();
-    }
-  }));
+  `).join("");
 }
 
-function renderPlanSummary(plan) {
-  if (plan.exercises.length === 0) return '<p class="muted">Inga övningar ännu.</p>';
-  return `<ul class="summary-list">${plan.exercises.map(ex => `
-    <li><strong>${escapeHtml(ex.name)}</strong><br><span class="muted">${ex.sets.map(s => `${escapeHtml(s.weight)} kg x ${escapeHtml(s.reps)}`).join(' · ')}</span></li>
-  `).join('')}</ul>`;
+function editPlan(planId) {
+  editingPlanId = planId;
+  renderPlanEditor();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function deletePlan(planId) {
+  if (!confirm("Ta bort upplägget?")) return;
+  const index = state.plans.findIndex(p => p.id === planId);
+  if (index >= 0) state.plans.splice(index, 1);
+  if (editingPlanId === planId) editingPlanId = null;
+  saveState();
+  renderAll();
+}
+
+function renderPlanEditor() {
+  const container = el("planEditor");
+  if (!editingPlanId) {
+    container.innerHTML = "";
+    return;
+  }
+  const plan = state.plans.find(p => p.id === editingPlanId);
+  if (!plan) return;
+
+  container.innerHTML = `
+    <div class="card">
+      <h2>Redigera: ${escapeHtml(plan.name)}</h2>
+      <label>Ny övning</label>
+      <div class="row">
+        <input id="newExerciseName" placeholder="Exempel: Marklyft" />
+        <input id="newExerciseWeight" type="number" inputmode="decimal" placeholder="Vikt" />
+        <input id="newExerciseReps" type="number" inputmode="numeric" placeholder="Reps" />
+        <button class="secondary" onclick="addExercise()">Lägg till</button>
+      </div>
+      <p class="muted">Du kan lägga till fler set efter att övningen skapats.</p>
+      <button class="primary" onclick="savePlan()">Spara upplägg</button>
+    </div>
+    ${plan.exercises.map(exercise => renderExerciseEditor(plan.id, exercise)).join("")}
+  `;
+}
+
+function renderExerciseEditor(planId, exercise) {
+  return `
+    <div class="list-item">
+      <div class="exercise-title">
+        <h3>${escapeHtml(exercise.name)}</h3>
+        <button class="danger" onclick="deleteExercise('${planId}','${exercise.id}')">Ta bort</button>
+      </div>
+      ${exercise.sets.map((set, index) => `
+        <div class="set-row">
+          <div class="set-pill">Set ${index + 1}</div>
+          <input type="number" inputmode="decimal" value="${set.weight}" onchange="updateTemplateSet('${planId}','${exercise.id}',${index},'weight',this.value)" />
+          <input type="number" inputmode="numeric" value="${set.reps}" onchange="updateTemplateSet('${planId}','${exercise.id}',${index},'reps',this.value)" />
+          <button class="danger" onclick="deleteTemplateSet('${planId}','${exercise.id}',${index})">Ta bort</button>
+        </div>
+      `).join("")}
+      <button class="secondary" onclick="addTemplateSet('${planId}','${exercise.id}')">Lägg till set</button>
+    </div>
+  `;
+}
+
+function addExercise() {
+  const plan = state.plans.find(p => p.id === editingPlanId);
+  if (!plan) return;
+  const name = el("newExerciseName").value.trim();
+  const weight = Number(el("newExerciseWeight").value || 0);
+  const reps = Number(el("newExerciseReps").value || 0);
+  if (!name) return alert("Skriv namn på övningen.");
+  plan.exercises.push({ id: uid(), name, sets: [{ weight, reps }] });
+  saveState();
+  renderAll();
+}
+
+function updateTemplateSet(planId, exerciseId, setIndex, field, value) {
+  const plan = state.plans.find(p => p.id === planId);
+  const exercise = plan?.exercises.find(e => e.id === exerciseId);
+  if (!exercise) return;
+  exercise.sets[setIndex][field] = Number(value || 0);
+  saveState();
+}
+
+function addTemplateSet(planId, exerciseId) {
+  const plan = state.plans.find(p => p.id === planId);
+  const exercise = plan?.exercises.find(e => e.id === exerciseId);
+  if (!exercise) return;
+  exercise.sets.push({ weight: 0, reps: 0 });
+  saveState();
+  renderAll();
+}
+
+function deleteTemplateSet(planId, exerciseId, setIndex) {
+  const plan = state.plans.find(p => p.id === planId);
+  const exercise = plan?.exercises.find(e => e.id === exerciseId);
+  if (!exercise) return;
+  exercise.sets.splice(setIndex, 1);
+  saveState();
+  renderAll();
+}
+
+function deleteExercise(planId, exerciseId) {
+  const plan = state.plans.find(p => p.id === planId);
+  if (!plan) return;
+  plan.exercises = plan.exercises.filter(e => e.id !== exerciseId);
+  saveState();
+  renderAll();
+}
+
+function savePlan() {
+  saveState();
+  alert("Upplägget är sparat.");
+  renderAll();
 }
 
 function startSession() {
-  const planId = $('#todayPlanSelect').value;
+  const planId = el("workoutSelect").value;
   const plan = state.plans.find(p => p.id === planId);
-  if (!plan) return;
+  if (!plan) return alert("Skapa eller välj ett upplägg först.");
   activeSession = {
     id: uid(),
-    date: todayIso(),
+    date: today(),
     planId: plan.id,
     planName: plan.name,
-    exercises: plan.exercises.map(ex => ({
+    exercises: plan.exercises.map(e => ({
       id: uid(),
-      templateExerciseId: ex.id,
-      name: ex.name,
-      updateTemplate: false,
-      sets: ex.sets.map(s => ({ id: uid(), weight: s.weight, reps: s.reps }))
+      templateExerciseId: e.id,
+      name: e.name,
+      updateStandard: false,
+      sets: e.sets.map(s => ({ weight: s.weight, reps: s.reps }))
     }))
   };
   renderActiveSession();
 }
 
 function renderActiveSession() {
-  const area = $('#activeSessionArea');
+  const container = el("activeSession");
   if (!activeSession) {
-    area.innerHTML = '';
+    container.innerHTML = "";
     return;
   }
-  area.innerHTML = `
+  container.innerHTML = `
     <div class="card">
-      <div class="session-header">
-        <div>
-          <h2>${escapeHtml(activeSession.planName)}</h2>
-          <p class="muted">Datum: ${escapeHtml(activeSession.date)}</p>
+      <h2>${escapeHtml(activeSession.planName)}</h2>
+      <p class="muted">Datum: ${activeSession.date}</p>
+      ${activeSession.exercises.map((exercise, exerciseIndex) => `
+        <div class="exercise-summary">
+          <h3>${escapeHtml(exercise.name)}</h3>
+          ${exercise.sets.map((set, setIndex) => `
+            <div class="set-row">
+              <div class="set-pill">Set ${setIndex + 1}</div>
+              <input type="number" inputmode="decimal" value="${set.weight}" onchange="updateSessionSet(${exerciseIndex},${setIndex},'weight',this.value)" />
+              <input type="number" inputmode="numeric" value="${set.reps}" onchange="updateSessionSet(${exerciseIndex},${setIndex},'reps',this.value)" />
+              <button class="danger" onclick="deleteSessionSet(${exerciseIndex},${setIndex})">Ta bort</button>
+            </div>
+          `).join("")}
+          <button class="secondary" onclick="addSessionSet(${exerciseIndex})">Lägg till set</button>
+          <label class="update-standard">
+            <input type="checkbox" ${exercise.updateStandard ? "checked" : ""} onchange="toggleUpdateStandard(${exerciseIndex}, this.checked)" />
+            Uppdatera standard för ${escapeHtml(exercise.name)} med dagens vikter
+          </label>
         </div>
-        <button id="saveSessionBtn">Spara pass</button>
-      </div>
-      <p class="muted">Ändra dagens vikt/reps. Kryssa per övning om standardupplägget ska uppdateras med dagens värden.</p>
+      `).join("")}
+      <button class="primary" onclick="saveSession()">Spara pass</button>
+      <button class="secondary" onclick="cancelSession()">Avbryt pass</button>
     </div>
-    ${activeSession.exercises.map((ex, exIndex) => `
-      <div class="session-exercise">
-        <h3>${escapeHtml(ex.name)}</h3>
-        ${ex.sets.map((set, setIndex) => `
-          <div class="session-set-row">
-            <div class="set-number">${setIndex + 1}</div>
-            <input class="session-weight" data-ex="${exIndex}" data-set="${setIndex}" type="number" inputmode="decimal" value="${escapeHtml(set.weight)}" placeholder="Vikt kg" />
-            <input class="session-reps" data-ex="${exIndex}" data-set="${setIndex}" type="number" inputmode="numeric" value="${escapeHtml(set.reps)}" placeholder="Reps" />
-            <button class="ghost danger remove-session-set" data-ex="${exIndex}" data-set="${setIndex}">Ta bort</button>
-          </div>
-        `).join('')}
-        <button class="ghost add-session-set" data-ex="${exIndex}">+ Lägg till set</button>
-        <label class="checkbox-row">
-          <input class="update-template-checkbox" data-ex="${exIndex}" type="checkbox" ${ex.updateTemplate ? 'checked' : ''} />
-          Uppdatera standardupplägget för ${escapeHtml(ex.name)} med dagens vikter/reps
-        </label>
-      </div>
-    `).join('')}
   `;
+}
 
-  $$('.session-weight').forEach(input => input.addEventListener('input', e => {
-    activeSession.exercises[e.target.dataset.ex].sets[e.target.dataset.set].weight = e.target.value;
-  }));
-  $$('.session-reps').forEach(input => input.addEventListener('input', e => {
-    activeSession.exercises[e.target.dataset.ex].sets[e.target.dataset.set].reps = e.target.value;
-  }));
-  $$('.update-template-checkbox').forEach(input => input.addEventListener('change', e => {
-    activeSession.exercises[e.target.dataset.ex].updateTemplate = e.target.checked;
-  }));
-  $$('.add-session-set').forEach(btn => btn.addEventListener('click', () => {
-    activeSession.exercises[btn.dataset.ex].sets.push({ id: uid(), weight: '', reps: '' });
-    renderActiveSession();
-  }));
-  $$('.remove-session-set').forEach(btn => btn.addEventListener('click', () => {
-    const ex = activeSession.exercises[btn.dataset.ex];
-    ex.sets.splice(btn.dataset.set, 1);
-    if (ex.sets.length === 0) ex.sets.push({ id: uid(), weight: '', reps: '' });
-    renderActiveSession();
-  }));
-  $('#saveSessionBtn').addEventListener('click', saveSession);
+function updateSessionSet(exerciseIndex, setIndex, field, value) {
+  activeSession.exercises[exerciseIndex].sets[setIndex][field] = Number(value || 0);
+}
+
+function addSessionSet(exerciseIndex) {
+  activeSession.exercises[exerciseIndex].sets.push({ weight: 0, reps: 0 });
+  renderActiveSession();
+}
+
+function deleteSessionSet(exerciseIndex, setIndex) {
+  activeSession.exercises[exerciseIndex].sets.splice(setIndex, 1);
+  renderActiveSession();
+}
+
+function toggleUpdateStandard(exerciseIndex, checked) {
+  activeSession.exercises[exerciseIndex].updateStandard = checked;
+}
+
+function cancelSession() {
+  if (!confirm("Avbryt dagens pass?")) return;
+  activeSession = null;
+  renderActiveSession();
 }
 
 function saveSession() {
   if (!activeSession) return;
-  const sessionToSave = JSON.parse(JSON.stringify(activeSession));
-  state.sessions.unshift(sessionToSave);
-
+  state.sessions.unshift(JSON.parse(JSON.stringify(activeSession)));
   const plan = state.plans.find(p => p.id === activeSession.planId);
   if (plan) {
     activeSession.exercises.forEach(sessionExercise => {
-      if (!sessionExercise.updateTemplate) return;
-      const templateExercise = plan.exercises.find(ex => ex.id === sessionExercise.templateExerciseId);
+      if (!sessionExercise.updateStandard) return;
+      const templateExercise = plan.exercises.find(e => e.id === sessionExercise.templateExerciseId);
       if (templateExercise) {
-        templateExercise.sets = sessionExercise.sets.map(s => ({ id: uid(), weight: s.weight, reps: s.reps }));
+        templateExercise.sets = sessionExercise.sets.map(s => ({ weight: s.weight, reps: s.reps }));
       }
     });
   }
-
   activeSession = null;
   saveState();
   renderAll();
-  switchView('historyView');
+  alert("Passet är sparat.");
 }
 
 function renderHistory() {
-  const area = $('#historyListArea');
-  if (state.sessions.length === 0) {
-    area.innerHTML = '<div class="card"><p>Ingen historik ännu.</p></div>';
+  const container = el("historyList");
+  if (!state.sessions.length) {
+    container.innerHTML = '<div class="card empty">Ingen historik ännu.</div>';
     return;
   }
-  area.innerHTML = state.sessions.map(session => `
-    <div class="card">
-      <h3>${escapeHtml(session.date)} – ${escapeHtml(session.planName)}</h3>
-      <ul class="summary-list">
-        ${session.exercises.map(ex => `
-          <li><strong>${escapeHtml(ex.name)}</strong><br><span class="muted">${ex.sets.map(s => `${escapeHtml(s.weight)} kg x ${escapeHtml(s.reps)}`).join(' · ')}</span></li>
-        `).join('')}
-      </ul>
+  container.innerHTML = state.sessions.map(session => `
+    <div class="list-item">
+      <h3>${session.date} – ${escapeHtml(session.planName)}</h3>
+      ${session.exercises.map(exercise => `
+        <div class="exercise-summary">
+          <strong>${escapeHtml(exercise.name)}</strong>
+          <p class="muted">${exercise.sets.map(s => `${s.weight} kg x ${s.reps}`).join(" · ")}</p>
+        </div>
+      `).join("")}
     </div>
-  `).join('');
+  `).join("");
 }
 
 function renderPB() {
-  const area = $('#pbListArea');
-  const best = new Map();
+  const container = el("pbList");
+  const best = {};
   state.sessions.forEach(session => {
-    session.exercises.forEach(ex => {
-      ex.sets.forEach(set => {
-        const weight = Number(set.weight);
-        const reps = Number(set.reps);
-        if (!weight || !reps) return;
-        const current = best.get(ex.name);
-        if (!current || weight > current.weight) {
-          best.set(ex.name, { exercise: ex.name, weight, reps, date: session.date });
+    session.exercises.forEach(exercise => {
+      exercise.sets.forEach(set => {
+        if (!best[exercise.name] || set.weight > best[exercise.name].weight) {
+          best[exercise.name] = { weight: set.weight, reps: set.reps, date: session.date };
         }
       });
     });
   });
-
-  if (best.size === 0) {
-    area.innerHTML = '<div class="card"><p>Inga PB ännu. Spara ett pass först.</p></div>';
+  const entries = Object.entries(best).sort((a, b) => a[0].localeCompare(b[0], "sv"));
+  if (!entries.length) {
+    container.innerHTML = '<div class="card empty">Inga personbästan ännu. Spara ett pass först.</div>';
     return;
   }
-
-  const rows = Array.from(best.values()).sort((a, b) => a.exercise.localeCompare(b.exercise, 'sv'));
-  area.innerHTML = rows.map(pb => `
-    <div class="card">
-      <h3>${escapeHtml(pb.exercise)}</h3>
-      <p><strong>${pb.weight} kg x ${pb.reps}</strong></p>
-      <p class="muted">Datum: ${escapeHtml(pb.date)}</p>
+  container.innerHTML = entries.map(([name, pb]) => `
+    <div class="list-item">
+      <h3>${escapeHtml(name)}</h3>
+      <div class="pb-weight">${pb.weight} kg x ${pb.reps}</div>
+      <p class="muted">Datum: ${pb.date}</p>
     </div>
-  `).join('');
+  `).join("");
 }
 
-function createNewPlan() {
-  const nameInput = $('#planNameInput');
-  const name = nameInput.value.trim() || 'Nytt upplägg';
-  const plan = { id: uid(), name, exercises: [] };
-  state.plans.unshift(plan);
-  editingPlanId = plan.id;
-  nameInput.value = '';
-  saveState();
-  renderAll();
+function renderAll() {
+  renderWorkoutSelect();
+  renderPlansList();
+  renderPlanEditor();
+  renderActiveSession();
+  renderHistory();
+  renderPB();
 }
 
 function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-function init() {
-  $$('.tab').forEach(tab => tab.addEventListener('click', () => switchView(tab.dataset.view)));
-  $('#newPlanBtn').addEventListener('click', createNewPlan);
-  $('#startSessionBtn').addEventListener('click', startSession);
-  $('#resetDataBtn').addEventListener('click', () => {
-    if (confirm('Vill du radera all lokal data?')) {
-      localStorage.removeItem(STORAGE_KEY);
-      state = loadState();
-      editingPlanId = null;
-      activeSession = null;
-      renderAll();
-    }
-  });
-  renderAll();
-}
-
-init();
+renderAll();
