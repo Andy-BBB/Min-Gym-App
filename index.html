@@ -13,14 +13,16 @@
     <header class="app-header">
       <div class="app-logo">🏋️</div>
       <h1>Min Gym App</h1>
-      <p class="version">v1.4</p>
+      <p class="version">v1.4.1</p>
     </header>
+
     <nav class="tabs">
       <button class="tab active" data-tab="today">🏋️ Pass</button>
       <button class="tab" data-tab="plans">📋 Upplägg</button>
       <button class="tab" data-tab="history">📅 Historik</button>
       <button class="tab" data-tab="pb">🏆 PB</button>
     </nav>
+
     <section id="today" class="view active">
       <section class="card hero-card">
         <h2>Dagens pass</h2>
@@ -30,30 +32,67 @@
           <button id="startSessionBtn" class="primary">Starta pass</button>
         </div>
       </section>
+
       <section id="activeSessionCard" class="card hidden">
-        <div class="section-title-row"><div><h2 id="activeSessionTitle">Aktivt pass</h2><p id="activeSessionDate" class="muted"></p></div><span id="sessionProgress" class="pill">0/0 klara</span></div>
+        <div class="section-title-row">
+          <div>
+            <h2 id="activeSessionTitle">Aktivt pass</h2>
+            <p id="activeSessionDate" class="muted"></p>
+          </div>
+          <span id="sessionProgress" class="pill">0/0 klara</span>
+        </div>
+
         <div id="activeExercises"></div>
+
         <div class="divider"></div>
         <h3>Uppdatera standardupplägg</h3>
         <p class="muted small">Välj endast de övningar där dagens resultat ska bli ny standard.</p>
         <div id="updateStandardOptions"></div>
+
         <button id="saveSessionBtn" class="primary full">Spara pass</button>
       </section>
+
       <section id="saveConfirmation" class="card success-card hidden"></section>
     </section>
+
     <section id="plans" class="view">
       <section class="card">
-        <h2>Upplägg</h2><p class="muted">Här administrerar du dina standardupplägg.</p>
-        <label for="planName">Namn på upplägg</label><input id="planName" type="text" placeholder="Exempel: Upplägg 1" />
+        <h2 id="planEditorTitle">Skapa upplägg</h2>
+        <p class="muted" id="planEditorHelp">Här administrerar du dina standardupplägg.</p>
+
+        <label for="planName">Namn på upplägg</label>
+        <input id="planName" type="text" placeholder="Exempel: Upplägg 1" />
+
         <div id="exerciseEditor"></div>
+
         <button id="addExerciseBtn" class="secondary full">+ Lägg till övning</button>
         <button id="savePlanBtn" class="primary full">Spara upplägg</button>
+        <button id="cancelEditBtn" class="secondary full hidden">Avbryt</button>
       </section>
-      <section class="card"><h2>Mina upplägg</h2><div id="plansList"></div></section>
+
+      <section class="card">
+        <h2>Mina upplägg</h2>
+        <div id="plansList"></div>
+      </section>
     </section>
-    <section id="history" class="view"><section class="card"><h2>Historik</h2><p class="muted">Dina sparade pass visas som träningsdagbok.</p><div id="historyList"></div></section></section>
-    <section id="pb" class="view"><section class="card pb-card"><h2>🏆 Personbästa</h2><p class="muted">Tyngsta vikt per övning, baserat på sparad historik.</p><div id="pbList"></div></section></section>
+
+    <section id="history" class="view">
+      <section class="card">
+        <h2>Historik</h2>
+        <p class="muted">Dina sparade pass visas som träningsdagbok.</p>
+        <div id="historyList"></div>
+      </section>
+    </section>
+
+    <section id="pb" class="view">
+      <section class="card pb-card">
+        <h2>🏆 Personbästa</h2>
+        <p class="muted">Tyngsta vikt per övning, baserat på sparad historik.</p>
+        <div id="pbList"></div>
+      </section>
+    </section>
   </main>
+
   <script src="app.js"></script>
 </body>
 </html>

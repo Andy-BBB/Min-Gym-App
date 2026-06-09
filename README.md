@@ -2,13 +2,17 @@
 
 En enkel PWA för gymträning.
 
-## Version 1.4
+## Version 1.4.1
 
-Design och gymflöde:
-- Aktivt pass med avbockning av övningar
-- Bättre uppläggsvy med antal övningar och set
-- Snyggare historik som träningsdagbok
-- Snyggare PB-vy
-- Bekräftelse efter sparat pass
+Nyheter:
+- Redigera befintliga upplägg
+- Byta namn på upplägg
+- Byta namn på övningar
+- Ändra vikt och reps i standardupplägg
+- Lägga till och ta bort set
+- Lägga till och ta bort övningar
+- Avbryt redigering utan att spara
+
+Historiken påverkas inte när standardupplägg redigeras.
 
 Data sparas lokalt i webbläsaren via LocalStorage.
