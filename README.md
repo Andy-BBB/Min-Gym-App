@@ -1,24 +1,14 @@
-# Min Gym App v1.3
+# Min Gym App
 
-En privat träningsapp byggd med HTML, CSS och JavaScript.
+En enkel PWA för gymträning.
 
-## Nytt i v1.3
+## Version 1.4
 
-- Svart/vit design
-- Versionsnummer under rubriken
-- Fliknavigering med tydligare design
-- Kortbaserad layout
-- PWA-manifest
-- Hemskärmsikon med muskelarm
+Design och gymflöde:
+- Aktivt pass med avbockning av övningar
+- Bättre uppläggsvy med antal övningar och set
+- Snyggare historik som träningsdagbok
+- Snyggare PB-vy
+- Bekräftelse efter sparat pass
 
-## Funktioner
-
-- Dagens pass
-- Upplägg
-- Historik
-- PB/personbästa
-- Lokal lagring i webbläsaren via LocalStorage
-
-## Publicering
-
-Ladda upp filerna till GitHub och använd GitHub Pages.
+Data sparas lokalt i webbläsaren via LocalStorage.
