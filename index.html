@@ -10,14 +10,32 @@
 </head>
 <body>
 <main class="app-shell">
-  <header class="app-header"><div class="app-logo">🏋️</div><h1>Min Gym App</h1></header>
-  <nav class="tabs">
-    <button class="tab active" data-tab="today">🏋️ Pass</button>
-    <button class="tab" data-tab="plans">📋 Upplägg</button>
-    <button class="tab" data-tab="history">📅 Historik</button>
-    <button class="tab" data-tab="pb">🏆 PB</button>
-    <button class="tab" data-tab="settings">⚙️ Inställningar</button>
-  </nav>
+  <header class="app-header">
+      <h1>Min Gym App</h1>
+    </header>
+
+    <nav class="tabs" aria-label="Huvudnavigering">
+      <button class="tab active" data-tab="today">
+        <span class="tab-icon" aria-hidden="true">🏋️</span>
+        <span class="tab-text">Pass</span>
+      </button>
+      <button class="tab" data-tab="plans">
+        <span class="tab-icon" aria-hidden="true">📋</span>
+        <span class="tab-text">Upplägg</span>
+      </button>
+      <button class="tab" data-tab="history">
+        <span class="tab-icon" aria-hidden="true">📅</span>
+        <span class="tab-text">Historik</span>
+      </button>
+      <button class="tab" data-tab="pb">
+        <span class="tab-icon" aria-hidden="true">🏆</span>
+        <span class="tab-text">PB</span>
+      </button>
+      <button class="tab" data-tab="settings">
+        <span class="tab-icon" aria-hidden="true">⚙️</span>
+        <span class="tab-text">Inställningar</span>
+      </button>
+    </nav>
 
   <section id="today" class="view active">
     <section class="card hero-card">
@@ -79,7 +97,7 @@
     <section class="card">
       <h2>⚙️ Inställningar</h2>
       <div class="settings-block"><h3>Appinformation</h3>
-        <div class="settings-row"><span>Version</span><strong>1.4.2</strong></div>
+        <div class="settings-row"><span>Version</span><strong>1.4.3</strong></div>
         <div class="settings-row"><span>Utvecklad av</span><strong>Andreas Rydén</strong></div>
         <div class="settings-row"><span>Datalagring</span><strong>Lokalt på enheten</strong></div>
       </div>

@@ -1,13 +1,15 @@
 # Min Gym App
 
-## Version 1.4.2
+## Version 1.4.3
 
-- Fem flikar inklusive Inställningar
-- Lägg till, ersätt eller ta bort övning under dagens pass
-- Fritext med förslag från en egen övningsbank
-- Endast genomförda övningar sparas
-- Kontroll innan delvis genomfört pass sparas
-- Minst en genomförd övning krävs
-- Data migreras från tidigare lokala versioner
+Designuppdatering:
+- Ny ljus innehållsyta med svart header
+- Fast navigering längst ned
+- Fem flikar i en vågrät rad
+- Ikoner centrerade ovanför texten
+- Större och tydligare fliktext
+- Aktiv flik visas med vit bakgrund
+- Förbättrade kort, formulär och klickytor på mobil
 
-Data sparas lokalt via LocalStorage.
+All funktionalitet från version 1.4.2 är kvar.
+Data migreras och fortsätter använda samma LocalStorage som version 1.4.2.
