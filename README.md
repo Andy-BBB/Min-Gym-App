@@ -1,18 +1,13 @@
 # Min Gym App
 
-En enkel PWA för gymträning.
+## Version 1.4.2
 
-## Version 1.4.1
+- Fem flikar inklusive Inställningar
+- Lägg till, ersätt eller ta bort övning under dagens pass
+- Fritext med förslag från en egen övningsbank
+- Endast genomförda övningar sparas
+- Kontroll innan delvis genomfört pass sparas
+- Minst en genomförd övning krävs
+- Data migreras från tidigare lokala versioner
 
-Nyheter:
-- Redigera befintliga upplägg
-- Byta namn på upplägg
-- Byta namn på övningar
-- Ändra vikt och reps i standardupplägg
-- Lägga till och ta bort set
-- Lägga till och ta bort övningar
-- Avbryt redigering utan att spara
-
-Historiken påverkas inte när standardupplägg redigeras.
-
-Data sparas lokalt i webbläsaren via LocalStorage.
+Data sparas lokalt via LocalStorage.
