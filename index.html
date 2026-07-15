@@ -9,6 +9,26 @@
   <meta name="theme-color" content="#050505">
 </head>
 <body>
+  <div id="loginOverlay" class="login-overlay">
+  <section class="login-card">
+    <h1>Min Gym App</h1>
+    <p class="muted">Logga in med din e-postadress.</p>
+
+    <label for="loginEmail">E-postadress</label>
+    <input
+      id="loginEmail"
+      type="email"
+      placeholder="namn@example.se"
+      autocomplete="email"
+    >
+
+    <button id="loginBtn" class="primary full">
+      Skicka inloggningslänk
+    </button>
+
+    <p id="loginMessage" class="muted small"></p>
+  </section>
+</div>
 <main class="app-shell">
   <header class="app-header">
       <h1>Min Gym App</h1>
@@ -93,22 +113,102 @@
     <section class="card pb-card"><h2>🏆 Personbästa</h2><p class="muted">Tyngsta vikt per övning.</p><div id="pbList"></div></section>
   </section>
 
-  <section id="settings" class="view">
-    <section class="card">
-      <h2>⚙️ Inställningar</h2>
-      <div class="settings-block"><h3>Appinformation</h3>
-        <div class="settings-row"><span>Version</span><strong>1.4.3</strong></div>
-        <div class="settings-row"><span>Utvecklad av</span><strong>Andreas Rydén</strong></div>
-        <div class="settings-row"><span>Datalagring</span><strong>Lokalt på enheten</strong></div>
+ <section id="settings" class="view">
+  <section class="card">
+    <h2>⚙️ Inställningar</h2>
+
+    <div class="settings-block">
+      <h3>Appinformation</h3>
+
+      <div class="settings-row">
+        <span>Version</span>
+        <strong>2.0 MVP</strong>
       </div>
-      <div class="settings-block"><h3>Backup</h3><p class="muted small">Export och import kommer i en senare version.</p><div class="settings-row"><span>Senaste backup</span><strong>Ingen backup skapad</strong></div></div>
-      <div class="settings-block"><h3>Import</h3><p class="muted small">Excel-import av historiska träningsdatum planeras till version 2.0.</p></div>
-      <div class="settings-block"><h3>Synkning</h3><div class="settings-row"><span>Status</span><strong>Ej aktiverad</strong></div><p class="muted small">Molnsynkning planeras till version 2.0.</p></div>
-      <div class="settings-block"><h3>Konto</h3><div class="settings-row"><span>Inloggning</span><strong>Ej aktiverad</strong></div></div>
-      <div class="settings-block"><h3>Om appen</h3><p class="muted small">En personlig träningsapp utan automatiska progressionsförslag.</p></div>
-    </section>
+
+      <div class="settings-row">
+        <span>Utvecklad av</span>
+        <strong>Andreas Rydén</strong>
+      </div>
+
+      <div class="settings-row">
+        <span>Datalagring</span>
+        <strong>Supabase Cloud</strong>
+      </div>
+    </div>
+
+    <div class="settings-block">
+      <h3>Backup</h3>
+
+      <p class="muted small">
+        Alla träningsdata sparas automatiskt i molnet.
+      </p>
+    </div>
+
+    <div class="settings-block">
+      <h3>Import</h3>
+
+      <p class="muted small">
+        Excel-import kommer i en senare version.
+      </p>
+    </div>
+
+    <div class="settings-block">
+      <h3>Synkning</h3>
+
+      <div class="settings-row">
+        <span>Status</span>
+        <strong>Automatiskt via Supabase</strong>
+      </div>
+
+      <p class="muted small">
+        Offline-stöd planeras i en senare version.
+      </p>
+    </div>
+
+    <div class="settings-block">
+      <h3>Konto</h3>
+
+      <div class="settings-row">
+        <span>Inloggning</span>
+        <strong>Magic Link</strong>
+      </div>
+
+      <button
+        id="logoutBtn"
+        class="danger full"
+      >
+        Logga ut
+      </button>
+
+      <p
+        id="logoutMessage"
+        class="muted small"
+      ></p>
+    </div>
+
+    <div class="settings-block">
+      <h3>Om appen</h3>
+
+      <p class="muted small">
+        En personlig träningsapp för seriös styrketräning.
+      </p>
+    </div>
+
   </section>
+</section>
+
 </main>
-<script src="app.js"></script>
-</body>
-</html>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase.js"></script>
+<script src="workspace.js"></script>
+
+<script src="src/utils.js"></script>
+<script src="src/storage.js"></script>
+<script src="src/plans.js"></script>
+<script src="src/sessions.js"></script>
+<script src="src/history.js"></script>
+<script src="src/app.js"></script>
+
+<script src="auth.js"></script>
