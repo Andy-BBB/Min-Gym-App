@@ -85,7 +85,7 @@ loginBtn.addEventListener("click", async () => {
     console.error("Fel vid inloggning:", error);
 
     loginMessage.textContent =
-      "Inloggningen kunde inte genomföras. Kontrollera e-postadressen.";
+      `Inloggningen misslyckades: ${error.message}`;
 
     loginBtn.disabled = false;
     loginBtn.textContent = "Skicka inloggningslänk";
