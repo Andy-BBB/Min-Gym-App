@@ -38,6 +38,8 @@ const app = {
     }
 
     this.setupTabs();
+    this.setupProfile();
+    this.renderAppTitle();
 
     await Plans.init();
     await Sessions.init();
@@ -72,6 +74,67 @@ const app = {
         }
       };
     });
+  },
+
+  setupProfile() {
+    const displayNameInput =
+      document.getElementById("displayNameInput");
+
+    const saveDisplayNameButton =
+      document.getElementById("saveDisplayNameBtn");
+
+    if (!displayNameInput || !saveDisplayNameButton) {
+      console.error(
+        "Profilfältet eller knappen för att spara namn saknas."
+      );
+      return;
+    }
+
+    displayNameInput.value = workspace.displayName || "";
+
+    saveDisplayNameButton.onclick = async () => {
+      const displayName = displayNameInput.value.trim();
+
+      if (!displayName) {
+        alert("Ange ditt namn.");
+        return;
+      }
+
+      saveDisplayNameButton.disabled = true;
+      saveDisplayNameButton.textContent = "Sparar...";
+
+      try {
+        await workspace.saveDisplayName(displayName);
+
+        this.renderAppTitle();
+
+        saveDisplayNameButton.textContent = "Sparat ✓";
+      } catch (error) {
+        console.error("Kunde inte spara namnet:", error);
+
+        alert(`Kunde inte spara namnet: ${error.message}`);
+
+        saveDisplayNameButton.textContent = "Spara namn";
+      } finally {
+        saveDisplayNameButton.disabled = false;
+
+        window.setTimeout(() => {
+          saveDisplayNameButton.textContent = "Spara namn";
+        }, 1500);
+      }
+    };
+  },
+
+  renderAppTitle() {
+    const appTitle = document.getElementById("appTitle");
+
+    if (!appTitle) {
+      console.error("Rubriken #appTitle saknas.");
+      return;
+    }
+
+    appTitle.textContent =
+      workspace.displayName || "Min Gym App";
   }
 };
 

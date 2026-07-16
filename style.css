@@ -465,3 +465,7 @@ button:disabled {
   min-height: 20px;
   margin-top: 14px;
 }
+.session-exercise .checkbox-row strong {
+  color: #111827;
+  font-weight: 700;
+}
