@@ -156,7 +156,20 @@ const Storage = {
       throw error;
     }
   },
-  
+
+    async listMyWorkspaces() {
+    const { data, error } =
+      await supabaseClient.rpc(
+        "list_my_workspaces"
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  },
+
   async savePlan(plan) {
     if (!workspace.id) {
       throw new Error("Aktivt workspace saknas.");

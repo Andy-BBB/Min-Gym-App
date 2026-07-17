@@ -40,6 +40,7 @@ const app = {
     this.setupTabs();
     this.setupProfile();
     this.setupMembers();
+    this.setupWorkspaceSelector();
     this.renderAppTitle();
 
     await Plans.init();
@@ -207,8 +208,7 @@ const app = {
 
           dialog.close();
 
-await this.renderMembers();
-
+          await this.renderMembers();
         } catch (error) {
           console.error(
             "Kunde inte bjuda in medlem:",
@@ -223,6 +223,70 @@ await this.renderMembers();
           confirmButton.textContent = "Bjud in";
         }
       };
+    };
+  },
+
+  setupWorkspaceSelector() {
+    const switcher =
+      document.getElementById("workspaceSwitcher");
+
+    const select =
+      document.getElementById("workspaceSelect");
+
+    if (!switcher || !select) {
+      console.error(
+        "Workspace-väljaren saknas i index.html."
+      );
+      return;
+    }
+
+    const workspaces =
+      workspace.availableWorkspaces || [];
+
+    if (workspaces.length <= 1) {
+      switcher.hidden = true;
+      return;
+    }
+
+    switcher.hidden = false;
+    select.innerHTML = "";
+
+    workspaces.forEach(item => {
+      const option =
+        document.createElement("option");
+
+      option.value = item.workspace_id;
+
+      option.textContent =
+        item.owner_display_name ||
+        item.owner_email ||
+        item.workspace_name ||
+        "Workspace";
+
+      option.selected =
+        item.workspace_id === workspace.id;
+
+      select.appendChild(option);
+    });
+
+    select.onchange = async () => {
+      select.disabled = true;
+
+      try {
+        await workspace.select(select.value);
+      } catch (error) {
+        console.error(
+          "Kunde inte byta workspace:",
+          error
+        );
+
+        alert(
+          `Kunde inte byta workspace: ${error.message}`
+        );
+
+        select.value = workspace.id;
+        select.disabled = false;
+      }
     };
   },
 
