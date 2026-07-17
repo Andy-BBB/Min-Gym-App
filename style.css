@@ -469,3 +469,59 @@ button:disabled {
   color: #111827;
   font-weight: 700;
 }
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.member-row:last-child {
+  border-bottom: 0;
+}
+
+#members-list {
+  margin: 12px 0 16px;
+}
+/* ==============================
+   Dialog
+============================== */
+
+.app-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 24px;
+  width: min(420px, calc(100vw - 32px));
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.2);
+}
+
+.app-dialog::backdrop {
+  background: rgba(0,0,0,.45);
+}
+
+.app-dialog h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.app-dialog label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.app-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}

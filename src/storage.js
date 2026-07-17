@@ -86,6 +86,77 @@ const Storage = {
     }));
   },
 
+    // ==============================
+  // Medlemmar
+  // ==============================
+
+  async inviteMember(workspaceId, email) {
+    if (!workspaceId) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const normalizedEmail = email?.trim();
+
+    if (!normalizedEmail) {
+      throw new Error("E-postadress saknas.");
+    }
+
+    const { data: userId, error } = await supabaseClient.rpc(
+      "invite_workspace_member",
+      {
+        p_workspace_id: workspaceId,
+        p_email: normalizedEmail
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    return userId;
+  },
+
+  async listMembers(workspaceId) {
+    if (!workspaceId) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const { data, error } = await supabaseClient.rpc(
+      "list_workspace_members",
+      {
+        p_workspace_id: workspaceId
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  async removeMember(workspaceId, userId) {
+    if (!workspaceId) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    if (!userId) {
+      throw new Error("Medlemmens id saknas.");
+    }
+
+    const { error } = await supabaseClient.rpc(
+      "remove_workspace_member",
+      {
+        p_workspace_id: workspaceId,
+        p_user_id: userId
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+  },
+  
   async savePlan(plan) {
     if (!workspace.id) {
       throw new Error("Aktivt workspace saknas.");

@@ -39,11 +39,13 @@ const app = {
 
     this.setupTabs();
     this.setupProfile();
+    this.setupMembers();
     this.renderAppTitle();
 
     await Plans.init();
     await Sessions.init();
     await History.init();
+    await this.renderMembers();
 
     console.log("Min Gym App Version 2 är klar.");
     console.log("Version 2 state:", this.state);
@@ -107,6 +109,7 @@ const app = {
         await workspace.saveDisplayName(displayName);
 
         this.renderAppTitle();
+        await this.renderMembers();
 
         saveDisplayNameButton.textContent = "Sparat ✓";
       } catch (error) {
@@ -125,8 +128,235 @@ const app = {
     };
   },
 
+  setupMembers() {
+    const inviteMemberButton =
+      document.getElementById("invite-member-btn");
+
+    if (!inviteMemberButton) {
+      console.error("Knappen #invite-member-btn saknas.");
+      return;
+    }
+
+    inviteMemberButton.onclick = () => {
+      const dialog =
+        document.getElementById("inviteMemberDialog");
+
+      const emailInput =
+        document.getElementById("inviteMemberEmail");
+
+      const errorMessage =
+        document.getElementById("inviteMemberError");
+
+      const cancelButton =
+        document.getElementById("cancelInviteMemberBtn");
+
+      const confirmButton =
+        document.getElementById("confirmInviteMemberBtn");
+
+      if (
+        !dialog ||
+        !emailInput ||
+        !errorMessage ||
+        !cancelButton ||
+        !confirmButton
+      ) {
+        console.error(
+          "En eller flera delar av medlemsdialogen saknas."
+        );
+        return;
+      }
+
+      emailInput.value = "";
+      errorMessage.hidden = true;
+      errorMessage.textContent = "";
+
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Bjud in";
+
+      dialog.showModal();
+      emailInput.focus();
+
+      cancelButton.onclick = () => {
+        dialog.close();
+      };
+
+      confirmButton.onclick = async event => {
+        event.preventDefault();
+
+        const normalizedEmail =
+          emailInput.value.trim();
+
+        if (!normalizedEmail) {
+          errorMessage.hidden = false;
+          errorMessage.textContent =
+            "Ange en e-postadress.";
+          return;
+        }
+
+        errorMessage.hidden = true;
+        errorMessage.textContent = "";
+
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Bjuder in...";
+
+        try {
+          await Storage.inviteMember(
+            workspace.id,
+            normalizedEmail
+          );
+
+          dialog.close();
+
+await this.renderMembers();
+
+        } catch (error) {
+          console.error(
+            "Kunde inte bjuda in medlem:",
+            error
+          );
+
+          errorMessage.hidden = false;
+          errorMessage.textContent =
+            error.message;
+        } finally {
+          confirmButton.disabled = false;
+          confirmButton.textContent = "Bjud in";
+        }
+      };
+    };
+  },
+
+  async renderMembers() {
+    const membersList =
+      document.getElementById("members-list");
+
+    if (!membersList) {
+      console.error("Medlemslistan #members-list saknas.");
+      return;
+    }
+
+    membersList.textContent = "Laddar medlemmar...";
+
+    try {
+      const members =
+        await Storage.listMembers(workspace.id);
+
+      if (!members.length) {
+        membersList.textContent =
+          "Inga medlemmar hittades.";
+        return;
+      }
+
+      membersList.innerHTML = "";
+
+      members.forEach(member => {
+        const memberRow =
+          document.createElement("div");
+
+        memberRow.className = "member-row";
+
+        const memberInfo =
+          document.createElement("div");
+
+        const memberName =
+          document.createElement("strong");
+
+        memberName.textContent =
+          member.display_name ||
+          member.email ||
+          "Namn saknas";
+
+        const memberRole =
+          document.createElement("div");
+
+        memberRole.className = "muted small";
+
+        if (member.is_owner) {
+          memberRole.textContent =
+            member.is_current_user
+              ? "Ägare · Du"
+              : "Ägare";
+        } else {
+          memberRole.textContent =
+            member.is_current_user
+              ? "Medlem · Du"
+              : "Medlem";
+        }
+
+        memberInfo.appendChild(memberName);
+        memberInfo.appendChild(memberRole);
+
+        memberRow.appendChild(memberInfo);
+
+        if (
+          !member.is_owner &&
+          !member.is_current_user
+        ) {
+          const removeButton =
+            document.createElement("button");
+
+          removeButton.type = "button";
+          removeButton.className = "secondary";
+          removeButton.textContent = "Ta bort";
+
+          removeButton.onclick = async () => {
+            const memberLabel =
+              member.display_name ||
+              member.email ||
+              "medlemmen";
+
+            const confirmed = window.confirm(
+              `Vill du ta bort ${memberLabel} från workspacet?`
+            );
+
+            if (!confirmed) {
+              return;
+            }
+
+            removeButton.disabled = true;
+            removeButton.textContent = "Tar bort...";
+
+            try {
+              await Storage.removeMember(
+                workspace.id,
+                member.user_id
+              );
+
+              await this.renderMembers();
+            } catch (error) {
+              console.error(
+                "Kunde inte ta bort medlem:",
+                error
+              );
+
+              alert(
+                `Kunde inte ta bort medlem: ${error.message}`
+              );
+
+              removeButton.disabled = false;
+              removeButton.textContent = "Ta bort";
+            }
+          };
+
+          memberRow.appendChild(removeButton);
+        }
+
+        membersList.appendChild(memberRow);
+      });
+    } catch (error) {
+      console.error(
+        "Kunde inte ladda medlemmar:",
+        error
+      );
+
+      membersList.textContent =
+        "Kunde inte ladda medlemmarna.";
+    }
+  },
+
   renderAppTitle() {
-    const appTitle = document.getElementById("appTitle");
+    const appTitle =
+      document.getElementById("appTitle");
 
     if (!appTitle) {
       console.error("Rubriken #appTitle saknas.");

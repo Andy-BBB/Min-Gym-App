@@ -141,17 +141,21 @@
 </div>
 
 <div class="settings-block">
-  <h3>👥 Bjud in PT</h3>
+  <h3>👥 Medlemmar</h3>
 
   <p class="muted small">
-    Dela ditt workspace med din personliga tränare.
+    Dela ditt workspace med andra medlemmar.
   </p>
 
+  <div id="members-list" class="small muted">
+    Laddar medlemmar...
+  </div>
+
   <button
+    id="invite-member-btn"
     class="secondary full"
-    disabled
   >
-    Kommer i version 2.1
+    Bjud in medlem
   </button>
 </div>
 
@@ -160,7 +164,7 @@
 
       <div class="settings-row">
         <span>Version</span>
-        <strong>2.0.1 MVP</strong>
+        <strong>2.1</strong>
       </div>
 
       <div class="settings-row">
@@ -220,6 +224,48 @@
 </section>
 
 </main>
+
+<dialog id="inviteMemberDialog" class="app-dialog">
+  <form id="inviteMemberForm" method="dialog">
+    <h3>👥 Bjud in medlem</h3>
+
+    <label for="inviteMemberEmail">
+      E-postadress
+    </label>
+
+    <input
+      id="inviteMemberEmail"
+      name="email"
+      type="email"
+      autocomplete="email"
+      placeholder="namn@example.com"
+      required
+    >
+
+    <p
+      id="inviteMemberError"
+      class="muted small"
+      hidden
+    ></p>
+
+    <div class="dialog-actions">
+      <button
+        id="cancelInviteMemberBtn"
+        type="button"
+        class="secondary"
+      >
+        Avbryt
+      </button>
+
+      <button
+        id="confirmInviteMemberBtn"
+        type="submit"
+      >
+        Bjud in
+      </button>
+    </div>
+  </form>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
