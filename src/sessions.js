@@ -18,9 +18,28 @@ const Sessions = {
     const saveSessionButton =
       document.getElementById("saveSessionBtn");
 
-    if (!startSessionButton || !saveSessionButton) {
+    const addExerciseButton =
+      document.getElementById("addSessionExerciseBtn");
+
+    const addSetButton =
+      document.getElementById("addSessionExerciseSetBtn");
+
+    const saveExerciseButton =
+      document.getElementById("saveSessionExerciseBtn");
+
+    const cancelExerciseButton =
+      document.getElementById("cancelSessionExerciseBtn");
+
+    if (
+      !startSessionButton ||
+      !saveSessionButton ||
+      !addExerciseButton ||
+      !addSetButton ||
+      !saveExerciseButton ||
+      !cancelExerciseButton
+    ) {
       throw new Error(
-        "Knapparna för träningspass kunde inte hittas."
+        "En eller flera knappar för träningspasset kunde inte hittas."
       );
     }
 
@@ -30,6 +49,22 @@ const Sessions = {
 
     saveSessionButton.onclick = () => {
       this.save();
+    };
+
+    addExerciseButton.onclick = () => {
+      this.openExerciseForm();
+    };
+
+    addSetButton.onclick = () => {
+      this.addExerciseSet();
+    };
+
+    saveExerciseButton.onclick = () => {
+      this.saveExercise();
+    };
+
+    cancelExerciseButton.onclick = () => {
+      this.closeExerciseForm();
     };
   },
 
@@ -100,6 +135,173 @@ const Sessions = {
       })
     };
 
+    this.closeExerciseForm();
+    this.render();
+  },
+
+  openExerciseForm() {
+    if (!this.activeSession) {
+      alert("Starta ett pass först.");
+      return;
+    }
+
+    const form =
+      document.getElementById("sessionExerciseForm");
+
+    const nameInput =
+      document.getElementById("sessionExerciseName");
+
+    const setsContainer =
+      document.getElementById("sessionExerciseSets");
+
+    if (!form || !nameInput || !setsContainer) {
+      console.error(
+        "Formuläret för att lägga till övning saknas."
+      );
+      return;
+    }
+
+    nameInput.value = "";
+    setsContainer.innerHTML = "";
+
+    this.addExerciseSet();
+
+    form.classList.remove("hidden");
+    nameInput.focus();
+  },
+
+  closeExerciseForm() {
+    const form =
+      document.getElementById("sessionExerciseForm");
+
+    const nameInput =
+      document.getElementById("sessionExerciseName");
+
+    const setsContainer =
+      document.getElementById("sessionExerciseSets");
+
+    if (form) {
+      form.classList.add("hidden");
+    }
+
+    if (nameInput) {
+      nameInput.value = "";
+    }
+
+    if (setsContainer) {
+      setsContainer.innerHTML = "";
+    }
+  },
+
+  addExerciseSet() {
+    const setsContainer =
+      document.getElementById("sessionExerciseSets");
+
+    if (!setsContainer) {
+      console.error(
+        "Behållaren för övningens set saknas."
+      );
+      return;
+    }
+
+    const setIndex =
+      setsContainer.querySelectorAll(".set-row").length;
+
+    const setRow =
+      document.createElement("div");
+
+    setRow.className = "set-row";
+
+    setRow.innerHTML = `
+      <div class="set-index">
+        ${setIndex + 1}
+      </div>
+
+      <input
+        type="number"
+        inputmode="decimal"
+        class="session-new-set-weight"
+        placeholder="Vikt"
+        value="0"
+        min="0"
+        step="0.5"
+      >
+
+      <input
+        type="number"
+        inputmode="numeric"
+        class="session-new-set-reps"
+        placeholder="Reps"
+        value="0"
+        min="0"
+        step="1"
+      >
+    `;
+
+    setsContainer.appendChild(setRow);
+  },
+
+  saveExercise() {
+    if (!this.activeSession) {
+      alert("Det finns inget aktivt pass.");
+      return;
+    }
+
+    const nameInput =
+      document.getElementById("sessionExerciseName");
+
+    const setsContainer =
+      document.getElementById("sessionExerciseSets");
+
+    if (!nameInput || !setsContainer) {
+      console.error(
+        "Formuläret för att lägga till övning saknas."
+      );
+      return;
+    }
+
+    const exerciseName = nameInput.value.trim();
+
+    if (!exerciseName) {
+      alert("Ange ett namn på övningen.");
+      nameInput.focus();
+      return;
+    }
+
+    const weightInputs =
+      setsContainer.querySelectorAll(
+        ".session-new-set-weight"
+      );
+
+    const repsInputs =
+      setsContainer.querySelectorAll(
+        ".session-new-set-reps"
+      );
+
+    if (!weightInputs.length) {
+      alert("Lägg till minst ett set.");
+      return;
+    }
+
+    const sets = Array.from(weightInputs).map(
+      (weightInput, index) => {
+        return {
+          id: utils.id(),
+          weight: Number(weightInput.value || 0),
+          reps: Number(repsInputs[index]?.value || 0)
+        };
+      }
+    );
+
+    this.activeSession.exercises.push({
+      id: utils.id(),
+      templateExerciseId: null,
+      name: exerciseName,
+      done: false,
+      sets
+    });
+
+    this.closeExerciseForm();
     this.render();
   },
 
@@ -137,93 +339,95 @@ const Sessions = {
     }
   },
 
-async save() {
-  if (!this.activeSession) {
-    alert("Det finns inget aktivt pass att spara.");
-    return;
-  }
-
-  const completedExercises =
-    this.activeSession.exercises.filter(exercise => {
-      return exercise.done;
-    });
-
-  if (completedExercises.length === 0) {
-    alert(
-      "Markera minst en övning som genomförd innan du sparar passet."
-    );
-
-    return;
-  }
-
-  if (
-    completedExercises.length < this.activeSession.exercises.length
-  ) {
-    const confirmed = confirm(
-      `Du har markerat ${completedExercises.length} av ` +
-      `${this.activeSession.exercises.length} övningar som genomförda. ` +
-      "Endast de genomförda övningarna sparas. Vill du fortsätta?"
-    );
-
-    if (!confirmed) {
+  async save() {
+    if (!this.activeSession) {
+      alert("Det finns inget aktivt pass att spara.");
       return;
     }
-  }
 
-  const saveButton =
-    document.getElementById("saveSessionBtn");
+    const completedExercises =
+      this.activeSession.exercises.filter(exercise => {
+        return exercise.done;
+      });
 
-  saveButton.disabled = true;
-  saveButton.textContent = "Sparar...";
+    if (completedExercises.length === 0) {
+      alert(
+        "Markera minst en övning som genomförd innan du sparar passet."
+      );
 
-  try {
-    const savedSession = this.activeSession;
+      return;
+    }
 
-    await Storage.saveSession(savedSession);
+    if (
+      completedExercises.length <
+      this.activeSession.exercises.length
+    ) {
+      const confirmed = confirm(
+        `Du har markerat ${completedExercises.length} av ` +
+        `${this.activeSession.exercises.length} övningar som genomförda. ` +
+        "Endast de genomförda övningarna sparas. Vill du fortsätta?"
+      );
 
-    await History.load();
-    History.render();
-    History.renderPB();
+      if (!confirmed) {
+        return;
+      }
+    }
 
-    const exerciseCount = completedExercises.length;
+    const saveButton =
+      document.getElementById("saveSessionBtn");
 
-    const setCount = completedExercises.reduce(
-      (total, exercise) => {
-        return total + exercise.sets.length;
-      },
-      0
-    );
+    saveButton.disabled = true;
+    saveButton.textContent = "Sparar...";
 
-    this.activeSession = null;
-    this.render();
+    try {
+      const savedSession = this.activeSession;
 
-    const confirmation =
-      document.getElementById("saveConfirmation");
+      await Storage.saveSession(savedSession);
 
-    confirmation.innerHTML = `
-      <strong>Pass sparat ✅</strong>
+      await History.load();
+      History.render();
+      History.renderPB();
 
-      <p class="muted">
-        Genomförda övningar: ${exerciseCount}<br>
-        Totalt antal set: ${setCount}<br>
-        Datum: ${utils.escapeHtml(savedSession.date)}
-      </p>
-    `;
+      const exerciseCount = completedExercises.length;
 
-    confirmation.classList.remove("hidden");
+      const setCount = completedExercises.reduce(
+        (total, exercise) => {
+          return total + exercise.sets.length;
+        },
+        0
+      );
 
-    console.log("Sessions.save(): passet sparades.");
-  } catch (error) {
-    console.error("Sessions.save() misslyckades:", error);
+      this.activeSession = null;
+      this.closeExerciseForm();
+      this.render();
 
-    alert(
-      `Kunde inte spara passet: ${error.message}`
-    );
-  } finally {
-    saveButton.disabled = false;
-    saveButton.textContent = "Spara pass";
-  }
-},
+      const confirmation =
+        document.getElementById("saveConfirmation");
+
+      confirmation.innerHTML = `
+        <strong>Pass sparat ✅</strong>
+
+        <p class="muted">
+          Genomförda övningar: ${exerciseCount}<br>
+          Totalt antal set: ${setCount}<br>
+          Datum: ${utils.escapeHtml(savedSession.date)}
+        </p>
+      `;
+
+      confirmation.classList.remove("hidden");
+
+      console.log("Sessions.save(): passet sparades.");
+    } catch (error) {
+      console.error("Sessions.save() misslyckades:", error);
+
+      alert(
+        `Kunde inte spara passet: ${error.message}`
+      );
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = "Spara pass";
+    }
+  },
 
   render() {
     const card =
