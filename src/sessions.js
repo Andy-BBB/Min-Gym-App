@@ -5,10 +5,24 @@ const Sessions = {
     console.log("Sessions.init() startar.");
 
     this.bindEvents();
+    this.bindExerciseAutocomplete();
     this.renderPlanSelect();
     this.render();
 
     console.log("Sessions.init() klar.");
+  },
+
+  bindExerciseAutocomplete() {
+    const nameInput =
+      document.getElementById("sessionExerciseName");
+
+    if (!nameInput) {
+      throw new Error(
+        "Övningsfältet för ett pågående pass kunde inte hittas."
+      );
+    }
+
+    Exercises.attachAutocomplete(nameInput);
   },
 
   bindEvents() {
@@ -121,7 +135,9 @@ const Sessions = {
         return {
           id: utils.id(),
           templateExerciseId: exercise.id,
+          exerciseId: exercise.exerciseId,
           name: exercise.name,
+          createNew: false,
           done: false,
 
           sets: exercise.sets.map(set => {
@@ -161,7 +177,7 @@ const Sessions = {
       return;
     }
 
-    nameInput.value = "";
+    Exercises.resetInput(nameInput);
     setsContainer.innerHTML = "";
 
     this.addExerciseSet();
@@ -185,7 +201,7 @@ const Sessions = {
     }
 
     if (nameInput) {
-      nameInput.value = "";
+      Exercises.resetInput(nameInput);
     }
 
     if (setsContainer) {
@@ -268,6 +284,16 @@ const Sessions = {
       return;
     }
 
+    const resolvedExercise = Exercises.resolveForSave({
+      exerciseId: nameInput.dataset.exerciseId || null,
+      name: exerciseName
+    });
+
+    if (!resolvedExercise) {
+      nameInput.focus();
+      return;
+    }
+
     const weightInputs =
       setsContainer.querySelectorAll(
         ".session-new-set-weight"
@@ -296,7 +322,9 @@ const Sessions = {
     this.activeSession.exercises.push({
       id: utils.id(),
       templateExerciseId: null,
-      name: exerciseName,
+      exerciseId: resolvedExercise.exerciseId,
+      name: resolvedExercise.name,
+      createNew: resolvedExercise.createNew,
       done: false,
       sets
     });
@@ -383,6 +411,10 @@ const Sessions = {
       const savedSession = this.activeSession;
 
       await Storage.saveSession(savedSession);
+
+      await Exercises.reload().catch(error => {
+        console.error("Övningsbanken kunde inte laddas om:", error);
+      });
 
       await History.load();
       History.render();

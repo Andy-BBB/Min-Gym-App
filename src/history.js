@@ -35,15 +35,17 @@ const History = {
           const weight = Number(set.weight || 0);
           const reps = Number(set.reps || 0);
 
-          const exerciseKey = exercise.name
-            .trim()
-            .toLowerCase();
+          const exerciseKey = exercise.exerciseId ||
+            `legacy:${Exercises.identityKey(exercise.name)}`;
+
+          const canonicalExercise =
+            Exercises.getById(exercise.exerciseId);
 
           const currentBest = personalBests.get(exerciseKey);
 
           if (!currentBest || weight > currentBest.weight) {
             personalBests.set(exerciseKey, {
-              exercise: exercise.name,
+              exercise: canonicalExercise?.name || exercise.name,
               weight,
               reps,
               date: session.date

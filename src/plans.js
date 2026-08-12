@@ -71,7 +71,9 @@ const Plans = {
   addExercise() {
     this.draft.exercises.push({
       id: utils.id(),
+      exerciseId: null,
       name: "",
+      createNew: false,
       sets: [this.createEmptySet()]
     });
 
@@ -115,7 +117,21 @@ const Plans = {
 
     if (exercise) {
       exercise.name = name;
+      exercise.exerciseId = null;
+      exercise.createNew = false;
     }
+  },
+
+  selectExercise(exerciseIndex, selectedExercise) {
+    const exercise = this.draft.exercises[exerciseIndex];
+
+    if (!exercise || !selectedExercise) {
+      return;
+    }
+
+    exercise.exerciseId = selectedExercise.id;
+    exercise.name = selectedExercise.name;
+    exercise.createNew = false;
   },
 
   updateSetWeight(exerciseIndex, setIndex, weight) {
@@ -142,29 +158,45 @@ const Plans = {
 
     const planName = planNameInput.value.trim();
 
-    const exercises = this.draft.exercises
-      .map(exercise => ({
-        name: String(exercise.name || "").trim(),
-
-        sets: exercise.sets
-          .filter(set => {
-            return (
-              String(set.weight ?? "") !== "" ||
-              String(set.reps ?? "") !== ""
-            );
-          })
-          .map(set => ({
-            weight: Number(set.weight || 0),
-            reps: Number(set.reps || 0)
-          }))
-      }))
-      .filter(exercise => {
-        return exercise.name && exercise.sets.length > 0;
-      });
-
     if (!planName) {
       alert("Skriv ett namn på upplägget.");
       return null;
+    }
+
+    const exercises = [];
+
+    for (const exercise of this.draft.exercises) {
+      const name = String(exercise.name || "").trim();
+
+      const sets = exercise.sets
+        .filter(set => {
+          return (
+            String(set.weight ?? "") !== "" ||
+            String(set.reps ?? "") !== ""
+          );
+        })
+        .map(set => ({
+          weight: Number(set.weight || 0),
+          reps: Number(set.reps || 0)
+        }));
+
+      if (!name || !sets.length) {
+        continue;
+      }
+
+      const resolvedExercise = Exercises.resolveForSave({
+        exerciseId: exercise.exerciseId,
+        name
+      });
+
+      if (!resolvedExercise) {
+        return null;
+      }
+
+      exercises.push({
+        ...resolvedExercise,
+        sets
+      });
     }
 
     if (exercises.length === 0) {
@@ -259,6 +291,10 @@ const Plans = {
 
     try {
       await Storage.savePlan(plan);
+
+      await Exercises.reload().catch(error => {
+        console.error("Övningsbanken kunde inte laddas om:", error);
+      });
 
       this.resetDraft();
 
@@ -432,15 +468,10 @@ async delete(planId) {
                 <label>Övning</label>
 
                 <input
-                  list="exerciseSuggestions"
+                  class="plan-exercise-name"
+                  data-exercise-index="${exerciseIndex}"
                   value="${utils.escapeHtml(exercise.name)}"
-                  placeholder="Exempel: Marklyft"
-                  oninput="
-                    Plans.updateExerciseName(
-                      ${exerciseIndex},
-                      this.value
-                    )
-                  "
+                  placeholder="Börja skriva en övning"
                 >
               </div>
 
@@ -466,6 +497,26 @@ async delete(planId) {
         `;
       })
       .join("");
+
+    exerciseEditor
+      .querySelectorAll(".plan-exercise-name")
+      .forEach(input => {
+        const exerciseIndex = Number(input.dataset.exerciseIndex);
+        const exercise = this.draft.exercises[exerciseIndex];
+
+        if (exercise?.exerciseId) {
+          input.dataset.exerciseId = exercise.exerciseId;
+        }
+
+        Exercises.attachAutocomplete(input, {
+          onInput: value => {
+            this.updateExerciseName(exerciseIndex, value);
+          },
+          onSelect: selectedExercise => {
+            this.selectExercise(exerciseIndex, selectedExercise);
+          }
+        });
+      });
   },
 
   render() {

@@ -141,6 +141,22 @@ Ingen UI-logik.
 
 ---
 
+## src/exercises.js
+
+Ansvarar för övningsbanken och kopplingen mellan övningsnamn och
+`exercise_library.id`.
+
+Exempel:
+
+- Ladda aktiva övningar för valt workspace
+- Prefixsökning och stavningsnära förslag
+- Autocomplete i upplägg och pågående pass
+- Bekräftelse innan en ny övning skapas
+
+Modulen visar namn i UI men bevarar `exercise_id` som stabil identitet.
+
+---
+
 ## src/plans.js
 
 Ansvarar för fliken:
@@ -166,7 +182,7 @@ Exempel:
 
 - Starta pass
 - Spara pass
-- Uppdatera standardupplägg
+- Lägga till extra övning under ett pågående pass
 
 ---
 
@@ -190,6 +206,9 @@ Ingen SQL skrivs direkt i UI-koden.
 Ingen HTML innehåller JavaScript-logik.
 
 Historiken är alltid sanningen.
+
+Personbästa grupperas efter `exercise_id`. Historiska namn bevaras som
+snapshots och används som fallback för äldre data.
 
 Standardupplägg är mallar.
 

@@ -1,4 +1,23 @@
 const Storage = {
+  async loadExercises() {
+    if (!workspace.id) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const { data, error } = await supabaseClient
+      .from("exercise_library")
+      .select("id, name")
+      .eq("workspace_id", workspace.id)
+      .eq("is_archived", false)
+      .order("name", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  },
+
   async loadPlans() {
     if (!workspace.id) {
       throw new Error("Aktivt workspace saknas.");
@@ -29,8 +48,10 @@ const Storage = {
         .select(`
           id,
           workout_plan_id,
+          exercise_id,
           sort_order,
           exercise_library (
+            id,
             name
           )
         `)
@@ -73,6 +94,8 @@ const Storage = {
         .filter(exercise => exercise.workout_plan_id === plan.id)
         .map(exercise => ({
           id: exercise.id,
+          exerciseId:
+            exercise.exercise_id || exercise.exercise_library?.id || null,
           name: exercise.exercise_library?.name || "Okänd övning",
 
           sets: planSets
@@ -184,7 +207,9 @@ const Storage = {
     }
 
     const exercises = plan.exercises.map(exercise => ({
+      exerciseId: exercise.exerciseId || null,
       name: exercise.name,
+      createNew: exercise.createNew === true,
 
       sets: exercise.sets.map(set => ({
         weight: Number(set.weight || 0),
@@ -264,6 +289,7 @@ const Storage = {
       .select(`
         id,
         workout_session_id,
+        exercise_id,
         exercise_name_snapshot,
         sort_order
       `)
@@ -316,6 +342,7 @@ const Storage = {
       })
       .map(exercise => ({
         id: exercise.id,
+        exerciseId: exercise.exercise_id || null,
         name: exercise.exercise_name_snapshot,
 
         sets: sessionSets
@@ -352,7 +379,9 @@ async saveSession(session) {
 
   const payload = completedExercises.map(exercise => ({
     templateExerciseId: exercise.templateExerciseId,
+    exerciseId: exercise.exerciseId || null,
     name: exercise.name,
+    createNew: exercise.createNew === true,
 
     sets: exercise.sets.map(set => ({
       weight: Number(set.weight || 0),

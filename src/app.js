@@ -2,7 +2,7 @@ const app = {
   state: {
     plans: [],
     sessions: [],
-    exerciseBank: []
+    exerciseLibrary: []
   },
 
   isInitialized: false,
@@ -43,6 +43,7 @@ const app = {
     this.setupWorkspaceSelector();
     this.renderAppTitle();
 
+    await Exercises.init();
     await Plans.init();
     await Sessions.init();
     await History.init();

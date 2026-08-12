@@ -129,7 +129,8 @@ if (logoutBtn) {
     if (window.app?.state) {
       app.state.plans = [];
       app.state.sessions = [];
-      app.state.exerciseBank = [];
+      app.state.exerciseLibrary = [];
+      Exercises.items = [];
       app.isInitialized = false;
     }
 

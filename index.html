@@ -73,9 +73,10 @@
 
       <div id="sessionExerciseForm" class="exercise-editor hidden">
         <h3 id="sessionExerciseFormTitle">Lägg till övning</h3>
-        <label for="sessionExerciseName">Övning</label>
-        <input id="sessionExerciseName" list="exerciseSuggestions" placeholder="Skriv valfri övning">
-        <datalist id="exerciseSuggestions"></datalist>
+        <div class="exercise-autocomplete-field">
+          <label for="sessionExerciseName">Övning</label>
+          <input id="sessionExerciseName" placeholder="Börja skriva en övning">
+        </div>
         <div id="sessionExerciseSets"></div>
         <button id="addSessionExerciseSetBtn" class="secondary full">+ Lägg till set</button>
         <button id="saveSessionExerciseBtn" class="primary full">Spara övning</button>
@@ -292,6 +293,7 @@
 
 <script src="src/utils.js"></script>
 <script src="src/storage.js"></script>
+<script src="src/exercises.js"></script>
 <script src="src/plans.js"></script>
 <script src="src/sessions.js"></script>
 <script src="src/history.js"></script>

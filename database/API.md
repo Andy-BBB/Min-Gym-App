@@ -47,6 +47,31 @@ cancelEdit()
 
 ---
 
+# exercises.js
+
+Ansvar
+
+- Ladda och söka i aktivt workspaces övningsbank
+- Koppla visningsnamn till stabilt `exercise_id`
+- Visa autocomplete och stavningsnära förslag
+- Kräva bekräftelse innan en ny övning skapas
+
+Publika funktioner
+
+init()
+
+reload()
+
+getById()
+
+findMatches()
+
+resolveForSave()
+
+attachAutocomplete()
+
+---
+
 # sessions.js
 
 Ansvar
@@ -85,14 +110,16 @@ Ansvar
 
 Publika funktioner
 
-plans.init()
-plans.load()
-plans.create()
-plans.update()
-plans.delete()
-plans.render()
+loadExercises()
+
+loadPlans()
+
+savePlan()
+
+deletePlan()
 
 loadSessions()
+
 saveSession()
 
 ---

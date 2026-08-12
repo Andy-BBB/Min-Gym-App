@@ -136,6 +136,7 @@ MIN-GYM-APP/
 │
 └── src/
     ├── app.js
+    ├── exercises.js
     ├── history.js
     ├── plans.js
     ├── sessions.js
@@ -180,6 +181,19 @@ Ansvarar bland annat för:
 - workspace-väljare
 
 `app.js` ska inte innehålla detaljerad tränings- eller databaslogik.
+
+
+### `src/exercises.js`
+
+Ansvarar för övningsbanken och autocomplete.
+
+Exempel:
+
+- ladda aktiva övningar i valt workspace
+- föreslå övningar medan användaren skriver
+- bevara `exercise_id` som stabil identitet
+- föreslå närliggande stavningar
+- kräva bekräftelse innan en ny övning skapas
 
 
 ### `src/plans.js`
@@ -235,6 +249,7 @@ Kommunikationslager mellan frontend och Supabase.
 
 Exempel på ansvar:
 
+- `loadExercises()`
 - `loadPlans()`
 - `savePlan()`
 - `deletePlan()`
@@ -537,7 +552,7 @@ exercise_library
 
 Övningsbanken är viktig för framtida datakvalitet.
 
-Nuvarande problem:
+Problemet som övningsbanken löser:
 
 Fritext kan skapa variationer som:
 
@@ -549,15 +564,18 @@ Bänk Press
 
 För en människa är detta samma övning, men det kan ge separata PB-resultat om övningen identifieras via namn.
 
-Planerad förbättring:
+Implementerad modell från migration `013`:
 
 - autocomplete när användaren skriver övningsnamn
 - exempel: `Bänk...` föreslår `Bänkpress`
 - användaren kan välja befintlig övning
-- om övningen inte finns ska ny övning kunna skapas
-- övningar bör i framtiden identifieras via `exercise_id`, inte endast namn
+- stavningsnära namn visas som förslag men slås inte ihop automatiskt
+- om övningen inte finns kan en ny övning skapas efter bekräftelse
+- övningar identifieras via `exercise_id`
+- historiska namn bevaras i `exercise_name_snapshot`
+- PB grupperas via `exercise_id`, med normaliserat namn som legacy-fallback
 
-Övningsbanken är en viktig kommande förbättring eftersom konsekvent grunddata behövs innan mer avancerad statistik byggs.
+Konsekvent grunddata i övningsbanken är en förutsättning för framtida statistik.
 
 
 ## 20. Arkivering av upplägg
@@ -949,7 +967,7 @@ Närmaste fas:
 Undvik större nyutveckling tills nuvarande version har testats i gymmet och med flera användare.
 
 
-### Nästa större planerade område
+### Pågående större område
 
 **Övningsbank / autocomplete**
 
