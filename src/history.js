@@ -26,6 +26,78 @@ const History = {
     }
   },
 
+  parseSessionDate(value) {
+    const match = String(value || "").match(
+      /^(\d{4})-(\d{2})-(\d{2})/
+    );
+
+    if (!match) {
+      return null;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  },
+
+  countSessionsInLastDays(days) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const firstDay = new Date(today);
+    firstDay.setDate(today.getDate() - (days - 1));
+
+    return app.state.sessions.filter(session => {
+      const sessionDate = this.parseSessionDate(session.date);
+
+      return sessionDate &&
+        sessionDate >= firstDay &&
+        sessionDate <= today;
+    }).length;
+  },
+
+  getSummaryHtml() {
+    const sevenDayCount = this.countSessionsInLastDays(7);
+    const thirtyDayCount = this.countSessionsInLastDays(30);
+
+    return `
+      <div
+        class="history-stats"
+        role="group"
+        aria-label="Träningssammanfattning"
+      >
+        <div class="history-stat">
+          <strong class="history-stat-value">
+            ${sevenDayCount} pass
+          </strong>
+          <span class="history-stat-label">
+            Senaste 7 dagarna
+          </span>
+        </div>
+
+        <div class="history-stat">
+          <strong class="history-stat-value">
+            ${thirtyDayCount} pass
+          </strong>
+          <span class="history-stat-label">
+            Senaste 30 dagarna
+          </span>
+        </div>
+      </div>
+    `;
+  },
+
   calculatePB() {
     const personalBests = new Map();
 
@@ -76,15 +148,17 @@ const History = {
     }
 
     const sessions = app.state.sessions;
+    const summaryHtml = this.getSummaryHtml();
 
     if (sessions.length === 0) {
       historyList.innerHTML =
-        '<div class="empty">Ingen historik ännu.</div>';
+        `${summaryHtml}
+        <div class="empty">Ingen historik ännu.</div>`;
 
       return;
     }
 
-    historyList.innerHTML = sessions
+    const sessionsHtml = sessions
       .map(session => {
         const exercisesHtml = session.exercises
           .map(exercise => {
@@ -136,6 +210,8 @@ const History = {
         `;
       })
       .join("");
+
+    historyList.innerHTML = summaryHtml + sessionsHtml;
   },
 
   renderPB() {
