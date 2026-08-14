@@ -374,9 +374,53 @@ button:disabled {
 }
 
 .history-date {
-  margin-bottom: 4px;
+  display: block;
   font-size: 18px;
   font-weight: 900;
+}
+
+.history-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.history-summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-heading,
+.history-plan-name {
+  display: block;
+}
+
+.history-plan-name {
+  margin-top: 4px;
+}
+
+.history-chevron {
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.history-item[open] .history-chevron {
+  transform: rotate(180deg);
+}
+
+.history-summary:focus-visible {
+  outline: 3px solid var(--black);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.history-details {
+  padding-top: 2px;
 }
 
 .history-exercise {

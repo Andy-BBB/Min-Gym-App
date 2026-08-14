@@ -112,17 +112,27 @@ const History = {
           .join("");
 
         return `
-          <div class="history-item">
-            <div class="history-date">
-              ${utils.escapeHtml(session.date)}
+          <details class="history-item">
+            <summary class="history-summary">
+              <span class="history-heading">
+                <span class="history-date">
+                  ${utils.escapeHtml(session.date)}
+                </span>
+
+                <span class="muted history-plan-name">
+                  ${utils.escapeHtml(session.planName)}
+                </span>
+              </span>
+
+              <span class="history-chevron" aria-hidden="true">
+                &#9662;
+              </span>
+            </summary>
+
+            <div class="history-details">
+              ${exercisesHtml}
             </div>
-
-            <p class="muted">
-              ${utils.escapeHtml(session.planName)}
-            </p>
-
-            ${exercisesHtml}
-          </div>
+          </details>
         `;
       })
       .join("");
