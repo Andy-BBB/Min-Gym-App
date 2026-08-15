@@ -226,15 +226,58 @@ const History = {
     }
 
     const personalBests = this.calculatePB();
+    const featuredExerciseNames = ["Bänkpress", "Marklyft"];
+    const featuredExerciseKeys = new Set(
+      featuredExerciseNames.map(name =>
+        Exercises.identityKey(name)
+      )
+    );
 
-    if (personalBests.length === 0) {
-      pbList.innerHTML =
-        '<div class="empty">Inga personbästan ännu.</div>';
+    const featuredHtml = featuredExerciseNames
+      .map(exerciseName => {
+        const exerciseKey = Exercises.identityKey(exerciseName);
+        const personalBest = personalBests.find(item => {
+          return Exercises.identityKey(item.exercise) ===
+            exerciseKey;
+        });
 
-      return;
-    }
+        const resultHtml = personalBest
+          ? `
+              <span class="featured-pb-lift">
+                ${utils.escapeHtml(personalBest.weight)} kg ×
+                ${utils.escapeHtml(personalBest.reps)}
+              </span>
 
-    pbList.innerHTML = personalBests
+              <span class="featured-pb-date">
+                ${utils.escapeHtml(personalBest.date)}
+              </span>
+            `
+          : `
+              <span class="featured-pb-empty">
+                Inget PB ännu
+              </span>
+            `;
+
+        return `
+          <div class="featured-pb-item">
+            <strong class="featured-pb-name">
+              ${utils.escapeHtml(exerciseName)}
+            </strong>
+
+            ${resultHtml}
+          </div>
+        `;
+      })
+      .join("");
+
+    const otherPersonalBests = personalBests.filter(item => {
+      return !featuredExerciseKeys.has(
+        Exercises.identityKey(item.exercise)
+      );
+    });
+
+    const otherPersonalBestsHtml = otherPersonalBests.length > 0
+      ? otherPersonalBests
       .map(personalBest => {
         return `
           <div class="pb-item">
@@ -253,7 +296,24 @@ const History = {
           </div>
         `;
       })
-      .join("");
+      .join("")
+      : '<div class="empty">Inga övriga PB ännu.</div>';
+
+    pbList.innerHTML = `
+      <div
+        class="featured-pb"
+        role="group"
+        aria-label="Utvalda personbästa"
+      >
+        ${featuredHtml}
+      </div>
+
+      <h3 class="pb-section-title">
+        Övriga personbästa
+      </h3>
+
+      ${otherPersonalBestsHtml}
+    `;
   }
 };
 
