@@ -1,25 +1,26 @@
 # Min Gym App — AGENTS.md
 
-## 1. Syfte med dokumentet
+## 1. Syfte och grundprincip
 
-Detta dokument beskriver produktens mål, arkitektur, viktiga designbeslut, kodstruktur och utvecklingsprinciper.
+Detta dokument beskriver produktens mål, arkitektur, viktiga beslut och utvecklingsregler.
 
-AI-agenter som arbetar med repositoryt ska läsa detta dokument innan de föreslår eller genomför kodändringar.
-
-Grundprincip:
+AI-agenter ska läsa dokumentet och relevant befintlig kod innan de föreslår eller genomför ändringar.
 
 > Förstå befintlig funktionalitet innan du ändrar den.
 
-Min Gym App används i verklig träning. Stabilitet och enkelhet är viktigare än stora refaktoreringar eller teknisk elegans.
+Min Gym App används i verklig träning. Stabilitet, korrekt data och enkelhet är viktigare än stora refaktoreringar eller teknisk elegans.
 
+Gör minsta rimliga ändring och bevara fungerande funktionalitet.
+
+---
 
 ## 2. Produktöversikt
 
-Min Gym App är en personlig träningsapp för seriös styrketräning.
+Min Gym App är en personlig träningsapp för styrketräning.
 
-Appen används som installerbar webbapp/PWA, framför allt på iPhone.
+Appen används som installerbar PWA, främst på iPhone.
 
-Huvudflödet är:
+Huvudflöde:
 
 1. Logga in.
 2. Välj träningsupplägg.
@@ -29,71 +30,63 @@ Huvudflödet är:
 6. Spara pass.
 7. Se historik och personbästa.
 
-Användaren skapar normalt sina träningsupplägg i förväg och går därför vanligen direkt från inloggning till **Pass**.
+Användaren skapar normalt upplägg i förväg. `Pass` är därför normalt startvy efter inloggning.
 
+### Produktprinciper
 
-## 3. Produktprinciper
+* Appen ska hjälpa användaren att träna, inte skapa administration.
+* Enkelhet prioriteras framför många funktioner.
+* Bygg inte funktioner enbart för att de tekniskt går att bygga.
+* Undvik funktioner som duplicerar naturliga arbetsflöden.
+* Verklig användning ska styra utvecklingen.
+* Små, testbara förändringar föredras.
+* Befintlig fungerande funktionalitet ska bevaras.
+* Refaktorera inte stora delar samtidigt som en funktion eller kritisk bugg ändras.
+* Lägg inte till komplexitet utan tydligt användarbehov.
+* Mobil användbarhet, läsbarhet och kontrast prioriteras.
 
-Följ dessa principer vid vidare utveckling:
+---
 
-- Appen ska hjälpa användaren att träna, inte skapa administration.
-- Enkelhet prioriteras framför många funktioner.
-- Bygg inte funktioner bara för att de tekniskt går att bygga.
-- Undvik funktioner som duplicerar ett redan naturligt arbetsflöde.
-- Verklig användning ska styra vidare utveckling.
-- Små, testbara förändringar föredras framför stora omskrivningar.
-- Befintlig fungerande funktionalitet ska bevaras.
-- Refaktorera inte stora delar av projektet samtidigt som en funktion byggs eller en kritisk bugg rättas.
-- Lägg inte till ny komplexitet utan ett tydligt användarbehov.
-- UI ska vara enkelt att använda på mobil i gymmiljö.
-- Läsbarhet och tydlig kontrast prioriteras framför subtil design.
-
-
-## 4. Teknik
+## 3. Teknik
 
 ### Frontend
 
-- HTML
-- CSS
-- Vanilla JavaScript
-- Ingen React eller annat frontend-framework
-- PWA
-- GitHub Pages
+* HTML
+* CSS
+* Vanilla JavaScript
+* Ingen React/Vue/Svelte eller annat frontend-framework
+* PWA
+* GitHub Pages
 
 ### Backend
 
-- Supabase
-- PostgreSQL
-- Supabase Authentication
-- Magic Link
-- PostgreSQL RPC-funktioner
-- Row Level Security (RLS)
+* Supabase
+* PostgreSQL
+* Supabase Authentication
+* Magic Link
+* PostgreSQL RPC
+* Row Level Security (RLS)
 
-### Versionshantering
+### Utveckling
 
-- Git
-- GitHub
-- `main` används för publicerad/stabil kod.
+* Git/GitHub
+* `main` = publicerad/stabil kod
+* Visual Studio Code
+* Live Server
 
-### Lokal utveckling
+### Live Server
 
-- Visual Studio Code
-- Live Server
-
-### Viktigt om Live Server
-
-Live Server kör frontend lokalt men använder samma Supabase-backend som produktionsappen.
-
-Det innebär att databasoperationer som görs från Live Server kan påverka riktig data även om koden inte har committats eller pushats.
-
-Tänk:
+Live Server kör lokal frontend men använder samma Supabase-backend som produktionen.
 
 > Lokal frontend, riktig backend.
 
+Databasoperationer från Live Server kan därför påverka riktig data även om koden inte är committad eller pushad.
 
-## 5. Övergripande arkitektur
+Var försiktig med destruktiva tester.
 
-Applikationen följer ungefär detta flöde:
+---
+
+## 4. Arkitektur
 
 ```text
 UI
@@ -107,18 +100,16 @@ Supabase API / RPC
 PostgreSQL
 ```
 
-Funktionsmoduler ska i möjligaste mån inte känna till detaljer om SQL eller databasimplementation.
+`src/storage.js` är gränsen mellan frontendlogik och Supabase.
 
-`storage.js` fungerar som gränsen mellan frontendlogik och Supabase.
+Funktionsmoduler ska normalt använda `Storage` istället för att implementera egen databaslogik.
 
+---
 
-## 6. Aktiv projektstruktur
-
-Den aktiva Version 2-koden är huvudsakligen:
+## 5. Aktiv projektstruktur
 
 ```text
 MIN-GYM-APP/
-│
 ├── AGENTS.md
 ├── README.md
 ├── index.html
@@ -126,14 +117,11 @@ MIN-GYM-APP/
 ├── manifest.json
 ├── icon-192.png
 ├── icon-512.png
-│
 ├── auth.js
 ├── workspace.js
 ├── supabase.js
-│
 ├── database/
 │   └── SQL-migrationer och RPC-funktioner
-│
 └── src/
     ├── app.js
     ├── exercises.js
@@ -144,177 +132,137 @@ MIN-GYM-APP/
     └── utils.js
 ```
 
-Det finns eller har funnits äldre Version 1-filer med samma namn i projektroten, exempelvis:
+Den aktiva Version 2-koden laddas huvudsakligen från `src/`.
 
-- `app.js`
-- `history.js`
-- `plans.js`
-- `sessions.js`
-- `utils.js`
+Äldre Version 1-filer kan finnas i projektroten med samma namn som filer under `src/`.
 
-Dessa ska betraktas som potentiellt legacy.
-
-Radera dock aldrig filer enbart baserat på filnamn.
+Betrakta dem som potentiellt legacy men radera aldrig filer enbart baserat på filnamn.
 
 Kontrollera först:
 
-- referenser i `index.html`
-- referenser från andra JavaScript-filer
-- Git-historik vid behov
+* `index.html`
+* referenser från andra JavaScript-filer
+* Git-historik vid behov
 
-Den aktiva Version 2-koden laddas från `src/`.
+---
 
-
-## 7. JavaScript-moduler
+## 6. Modulansvar
 
 ### `src/app.js`
 
-Övergripande applikations- och UI-logik.
+Övergripande app- och UI-logik:
 
-Ansvarar bland annat för:
+* initiering
+* navigation/flikar
+* profil
+* appens rubrik
+* medlemshantering i UI
+* workspace-väljare
 
-- initiering av Version 2
-- huvudnavigation/flikar
-- profilgränssnitt
-- appens rubrik
-- medlemshantering i UI
-- workspace-väljare
-
-`app.js` ska inte innehålla detaljerad tränings- eller databaslogik.
-
+Lägg inte detaljerad tränings- eller databaslogik här.
 
 ### `src/exercises.js`
 
-Ansvarar för övningsbanken och autocomplete.
+Övningsbank och autocomplete:
 
-Exempel:
-
-- ladda aktiva övningar i valt workspace
-- föreslå övningar medan användaren skriver
-- bevara `exercise_id` som stabil identitet
-- föreslå närliggande stavningar
-- kräva bekräftelse innan en ny övning skapas
-
+* ladda aktiva övningar
+* autocomplete
+* stavningsnära förslag
+* bevara `exercise_id`
+* bekräfta innan ny övning skapas
 
 ### `src/plans.js`
 
-Ansvarar för träningsupplägg.
+Träningsupplägg:
 
-Exempel:
-
-- visa upplägg
-- skapa upplägg
-- redigera upplägg
-- ta bort upplägg
-- hantera övningar och set i upplägg
-
+* visa
+* skapa
+* redigera
+* ta bort
+* hantera övningar och set
 
 ### `src/sessions.js`
 
-Ansvarar för pågående träningspass.
+Pågående träningspass:
 
-Exempel:
+* starta pass från upplägg
+* skapa aktiv session
+* ändra vikt/reps
+* markera genomförda övningar
+* lägga till extra övning
+* lägga till set
+* spara pass
 
-- starta pass från ett upplägg
-- skapa aktiv session
-- ändra vikt och repetitioner
-- markera övningar som genomförda
-- lägga till extra övning under ett pågående pass
-- lägga till set på extra övning
-- spara träningspass
-
-#### Viktig produktregel
+**Kritisk produktregel:**
 
 Endast övningar markerade som genomförda ska sparas i historiken.
 
-Om en användare hoppar över en övning, exempelvis på grund av trasig eller upptagen maskin, ska den inte registreras som genomförd.
+En hoppad övning ska inte registreras som genomförd.
 
-Funktionen **Lägg till övning i dagens pass** är viktig och ska fungera även om övningen inte finns i det ursprungliga upplägget.
+`Lägg till övning i dagens pass` är kritisk funktionalitet och ska fungera även om övningen inte finns i ursprungligt upplägg.
 
+Regressionstesta funktionen efter ändringar i sessionslogiken.
 
 ### `src/history.js`
 
 Ansvarar för:
 
-- träningshistorik
-- visning av tidigare pass
-- personbästa (PB)
+* träningshistorik
+* tidigare pass
+* PB
 
-Historiken är källan till sanningen för genomförd träning.
-
+> Historiken är sanningen för genomförd träning.
 
 ### `src/storage.js`
 
 Kommunikationslager mellan frontend och Supabase.
 
-Exempel på ansvar:
+Ansvarar bland annat för:
 
-- `loadExercises()`
-- `loadPlans()`
-- `savePlan()`
-- `deletePlan()`
-- `loadSessions()`
-- `saveSession()`
-- `inviteMember()`
-- `listMembers()`
-- `removeMember()`
-- `listMyWorkspaces()`
+* övningar
+* upplägg
+* sessioner
+* medlemmar
+* workspaces
 
-Övriga moduler ska i möjligaste mån använda `Storage` istället för att själva implementera databaslogik.
-
+Övriga moduler ska normalt använda `Storage`.
 
 ### `src/utils.js`
 
-Gemensamma hjälpfunktioner.
+Gemensamma hjälpfunktioner, exempelvis:
 
-Exempel:
+* lokala ID:n
+* HTML escaping
 
-- generering av lokala ID:n
-- HTML escaping
-
-Undvik att lägga domänlogik här.
-
-
-## 8. Infrastruktur utanför `src`
+Lägg inte domänlogik här.
 
 ### `supabase.js`
 
 Skapar och konfigurerar Supabase-klienten.
 
-Används av övriga moduler för kommunikation med Supabase.
-
-
 ### `auth.js`
 
-Ansvarar för autentisering.
+Ansvarar för:
 
-Nuvarande modell:
-
-- Supabase Authentication
-- Magic Link
-- login
-- logout
-- återställning av befintlig session
-- start av appen efter autentisering
-
+* Magic Link
+* login/logout
+* återställning av session
+* start av app efter autentisering
 
 ### `workspace.js`
 
-Ansvarar för workspace-kontext.
+Ansvarar för:
 
-Workspace-modellen används för att separera träningsdata mellan användare och möjliggöra delning.
+* aktivt workspace
+* tillgängliga workspaces
+* workspace-byte
+* ihågkommet workspace
+* personligt workspace
+* `display_name`
 
-Workspace-logiken omfattar bland annat:
+---
 
-- aktivt workspace
-- användarens `display_name`
-- tillgängliga workspaces
-- byte av workspace
-- ihågkommet aktivt workspace
-- personligt workspace
-
-
-## 9. Databasmodell
+## 7. Databas
 
 PostgreSQL körs via Supabase.
 
@@ -323,26 +271,25 @@ Viktiga tabeller:
 ```text
 workspaces
 workspace_members
-
+categories
 exercise_library
-
 workout_plans
 plan_exercises
 plan_sets
-
 workout_sessions
 session_exercises
 session_sets
 ```
 
-Det finns även kategorirelaterad data, exempelvis `categories`, i databasen.
+Verifiera aktuell databasmodell och exakta RPC-signaturer mot SQL-filerna i `database/` innan backendrelaterad kod ändras.
 
+---
 
-## 10. Workspaces
+## 8. Workspaces och medlemmar
 
 Workspace är den centrala modellen för ägarskap och delning av träningsdata.
 
-Varje vanlig användare får ett eget personligt workspace.
+Varje vanlig användare har ett personligt workspace.
 
 RPC:
 
@@ -350,40 +297,24 @@ RPC:
 get_or_create_personal_workspace()
 ```
 
-säkerställer att användaren har ett personligt workspace.
+Ett workspace där användaren endast är medlem får inte räknas som användarens personliga workspace.
 
-Ett workspace där användaren endast är medlem ska inte räknas som användarens personliga workspace.
+En användare kan tillhöra flera workspaces.
 
-
-## 11. Delade workspaces och medlemmar
-
-Version 2.1 introducerade delade workspaces.
-
-Begreppet i produkten är:
-
-> Medlem
-
-inte:
-
-> PT
-
-En personlig tränare är bara ett av flera möjliga användningsfall.
+Produktbegreppet är **medlem**, inte PT.
 
 En medlem kan exempelvis vara:
 
-- PT
-- träningskompis
-- sambo
-- annan person som hjälper till med träningen
+* PT
+* träningskompis
+* partner
+* annan person som hjälper till med träningen
 
-Alla medlemmar har i nuläget samma rättigheter.
+Alla medlemmar har för närvarande samma rättigheter.
 
-Undvik att införa avancerade roller eller behörighetsmodeller utan ett konkret behov.
-
+Inför inte avancerade roller eller behörighetsmodeller utan konkret behov.
 
 ### Viktiga RPC-funktioner
-
-Följande backendfunktioner har byggts:
 
 ```text
 invite_workspace_member(...)
@@ -392,61 +323,42 @@ remove_workspace_member(...)
 list_my_workspaces()
 ```
 
-Exakta signaturer ska verifieras mot SQL-filerna i `database/` innan kod ändras.
-
+Verifiera exakta signaturer mot `database/`.
 
 ### Inbjudan
 
-Nuvarande modell kräver att personen redan finns som användare i Supabase Authentication.
+Nuvarande modell kräver att personen redan finns i Supabase Authentication.
 
 Användaradministration sker manuellt i Supabase Dashboard.
 
-Appen behöver inte bygga ett eget administratörsgränssnitt för att skapa nya appanvändare i nuläget.
+Bygg inte eget administratörsgränssnitt för att skapa användare utan nytt behov.
 
+---
 
-## 12. Workspace-väljare
+## 9. Workspace-UI och profil
 
-En användare kan vara medlem i flera workspaces.
+Workspace-väljaren ska visa workspace-ägarens namn, inte tekniska ID:n.
 
-Exempel:
-
-```text
-Karin
-Andreas Rydén
-```
-
-UI:t ska visa workspace-ägarens namn snarare än tekniska workspace-ID:n.
-
-Om användaren bara har ett workspace behöver workspace-väljaren inte visas.
+Om användaren endast har ett workspace behöver väljaren inte visas.
 
 Valt workspace ska kunna kommas ihåg mellan omladdningar.
 
-När workspace byts ska appens data laddas från det valda workspacet.
+När workspace byts ska relevant data laddas från det nya workspacet.
 
+### Aktivt workspace
 
-## 13. Viktig öppen UI-fråga: appens rubrik
+När en användare arbetar i någon annans workspace måste UI tydligt visa vems träningsmiljö som är aktiv.
 
-Historiskt har appens rubrik visat den inloggade användarens `display_name`.
+Princip:
 
-När delade workspaces infördes upptäcktes att detta kan bli missvisande.
+* profilnamn = inloggad användare
+* appens huvudrubrik = ägare till aktivt workspace
 
-Exempel:
+Verifiera aktuell implementation innan ändring.
 
-Karin är inloggad men arbetar i Andreas workspace.
+### `display_name`
 
-Rubriken bör då tydligt visa att det aktiva workspacet tillhör Andreas.
-
-Planerad/rimlig lösning:
-
-- profilnamn = den inloggade användarens namn
-- appens huvudrubrik = ägaren till aktivt workspace
-
-Detta ska verifieras mot aktuell kod innan ändring görs.
-
-
-## 14. Profil och `display_name`
-
-Användarens visningsnamn lagras i:
+Visningsnamn lagras i:
 
 ```text
 workspace_members.display_name
@@ -454,266 +366,202 @@ workspace_members.display_name
 
 Inte i `workspaces.name`.
 
-Profilen kan redigeras under Inställningar.
+E-post används som fallback där det är lämpligt.
 
-Användarens namn används bland annat för:
+---
 
-- visning i appen
-- medlemslistor
-- workspace-väljare
-
-Om `display_name` saknas används e-postadress som fallback där det är lämpligt.
-
-
-## 15. Träningsupplägg
+## 10. Träningsupplägg och pass
 
 Upplägg är mallar för framtida träningspass.
 
 Ett upplägg innehåller:
 
-- namn
-- övningar
-- set
-- målvikt
-- målrepetitioner
+* namn
+* övningar
+* set
+* målvikt
+* målrepetitioner
 
-Vanligt användningsmönster:
+Det faktiska träningsresultatet registreras i passet och sparas i historiken.
 
-1. Användaren skapar 2–4 upplägg för en träningsperiod.
-2. På gymmet väljs ett befintligt upplägg.
-3. Passet startas.
-4. Faktiskt genomförd träning registreras.
+### Standardupplägg uppdateras inte automatiskt
 
+Ett genomfört pass får inte automatiskt ändra standardupplägget.
 
-## 16. Standardupplägg uppdateras inte från pass
+Resultatet från passet sparas i historiken.
 
-Tidigare fanns en idé/funktion:
+Vill användaren ändra standardvärden görs det manuellt:
 
-> Uppdatera standardupplägg
+`Upplägg → Redigera`
 
-Den har medvetet tagits bort.
+Återinför inte automatisk uppdatering utan nytt uttryckligt produktbeslut.
 
-Exempel:
+---
 
-Upplägget säger:
+## 11. Historik och PB
 
-```text
-80 kg × 8
-```
+Historiken ska representera vad användaren faktiskt genomförde.
 
-En dålig dag klarar användaren:
-
-```text
-75 kg × 6
-```
-
-Det genomförda resultatet ska sparas i historiken, men upplägget ska fortfarande visa `80 × 8` nästa gång.
-
-Vill användaren ändra standarden görs detta manuellt under:
-
-```text
-Upplägg → Redigera
-```
-
-Återinför inte automatisk uppdatering av upplägg från träningspass utan ett nytt uttryckligt produktbeslut.
-
-
-## 17. Historik
-
-När ett pass sparas ska historiken representera vad användaren faktiskt genomförde.
-
-Endast övningar markerade som genomförda sparas.
-
-Historiska pass ska inte förändras när ett träningsupplägg senare redigeras.
-
-Därför används snapshots för bland annat namn i sessionsdata.
-
-
-## 18. Personbästa (PB)
+* Endast genomförda övningar sparas.
+* Extra övningar ska kunna sparas.
+* Vikt/reps ska motsvara det genomförda passet.
+* Historiska pass får inte förändras när upplägg senare redigeras.
+* Sessionsdata använder snapshots där historisk information måste bevaras.
 
 PB beräknas från historiken.
 
-Det finns ingen separat PB-tabell som är källa till sanningen.
-
-Princip:
+Det finns ingen separat PB-tabell som källa till sanningen.
 
 > Historiken är sanningen.
 
-Undvik att skapa duplicerad PB-data som kan hamna ur synk med historiken.
+Skapa inte duplicerad PB-data som kan hamna ur synk.
 
+---
 
-## 19. Övningsbank
+## 12. Övningsbank
 
-Databasen innehåller:
+`exercise_library` används för konsekventa övningsidentiteter och datakvalitet.
 
-```text
-exercise_library
-```
+Fritext kan skapa flera namn för samma övning och därmed felaktiga PB-resultat.
 
-Övningsbanken är viktig för framtida datakvalitet.
+Implementerad modell:
 
-Problemet som övningsbanken löser:
+* autocomplete
+* befintliga övningar kan väljas
+* stavningsnära namn visas som förslag men slås inte automatiskt ihop
+* nya övningar kräver bekräftelse
+* övningar identifieras via `exercise_id`
+* historiska namn bevaras i `exercise_name_snapshot`
+* PB grupperas via `exercise_id`
+* normaliserat namn används som legacy-fallback
 
-Fritext kan skapa variationer som:
+Undvik att återgå till ren namnmatchning som primär övningsidentitet.
 
-```text
-Bänkpress
-bänkpress
-Bänk Press
-```
+Konsekvent övningsdata är grund för framtida statistik.
 
-För en människa är detta samma övning, men det kan ge separata PB-resultat om övningen identifieras via namn.
+---
 
-Implementerad modell från migration `013`:
+## 13. Beslut som ska bevaras
 
-- autocomplete när användaren skriver övningsnamn
-- exempel: `Bänk...` föreslår `Bänkpress`
-- användaren kan välja befintlig övning
-- stavningsnära namn visas som förslag men slås inte ihop automatiskt
-- om övningen inte finns kan en ny övning skapas efter bekräftelse
-- övningar identifieras via `exercise_id`
-- historiska namn bevaras i `exercise_name_snapshot`
-- PB grupperas via `exercise_id`, med normaliserat namn som legacy-fallback
+### Offline
 
-Konsekvent grunddata i övningsbanken är en förutsättning för framtida statistik.
+Offline-stöd är medvetet nedprioriterat.
 
+Skäl:
 
-## 20. Arkivering av upplägg
+* WiFi/mobildata finns normalt
+* små datamängder
+* offline-synk ökar komplexiteten
 
-Det finns en framtida idé om att kunna arkivera gamla upplägg.
+Bygg inte offline-synk och lova inte offline-stöd i UI utan nytt produktbeslut.
 
-Problemet som ska lösas är inte vem som skapade upplägget utan att listan kan bli lång över tid.
+### Import
 
-Föredragen modell:
+Excel/CSV-import ska inte byggas som appfunktion.
+
+Eventuell historisk import görs administrativt via Supabase/SQL.
+
+Visa inte framtida importfunktion i UI.
+
+### Backup
+
+Separat backupfunktion i UI är borttagen.
+
+Data lagras i Supabase.
+
+Återinför inte backupsektion utan konkret behov.
+
+### Arkivering
+
+Arkivering av gamla upplägg är en möjlig framtida funktion men inte prioriterad.
+
+Problemet är listans längd över tid, inte vem som skapade upplägget.
+
+Föredragen framtida modell:
 
 ```text
 Aktiva upplägg
 Arkiverade upplägg
 ```
 
-Undvik att skapa en särskild PT-mapp för upplägg utan nytt behov.
+Skapa inte särskilda PT-mappar utan nytt behov.
 
-PT eller andra medlemmar kan vid behov använda fri namngivning, exempelvis:
+---
 
-```text
-PT - Gym 1
-PT - Ben
-```
+## 14. Magic Link och iPhone/PWA
 
-Arkivering är inte en prioriterad funktion just nu.
+Autentisering använder Supabase Magic Link.
 
+På iPhone finns ett känt UX-problem där Magic Link kan öppnas i Safari medan den installerade PWA:n har ett annat sessionsläge.
 
-## 21. Offline
+Beslut:
 
-Offline-stöd har diskuterats och medvetet nedprioriterats/tagits bort från roadmapen.
-
-Motivering:
-
-- gymmet har normalt WiFi
-- mobil data fungerar
-- datamängderna är mycket små
-- offline-synk skulle öka komplexiteten
-
-UI ska inte lova framtida offline-stöd.
-
-
-## 22. Import
-
-Import av gammal träningshistorik via Excel/CSV har diskuterats men ska inte byggas som appfunktion.
-
-Om historisk data någon gång behöver importeras kan detta göras administrativt via Supabase/SQL.
-
-UI ska inte visa en framtida importfunktion.
-
-
-## 23. Backup
-
-Separat backupfunktion i användargränssnittet har tagits bort.
-
-Data lagras i Supabase.
-
-Undvik att återinföra en backupsektion utan konkret användarbehov.
-
-
-## 24. Magic Link och iPhone/PWA
-
-Nuvarande autentisering använder Magic Link.
-
-På iPhone finns ett känt UX-problem:
-
-1. Användaren öppnar installerad PWA.
-2. Anger e-post.
-3. Magic Link skickas.
-4. Länken öppnas i Safari.
-5. Om användaren senare trycker på hemskärmsikonen kan PWA:n fortfarande visa sidan som säger att Magic Link skickats, medan den autentiserade sessionen finns i Safari.
-
-### Beslut
-
-Behåll Magic Link.
-
-Inför inte egen SMTP/OTP-lösning i nuläget.
-
-Framtida spår är att undersöka hur Magic Link bättre kan återöppna eller samspela med installerad PWA.
+* behåll Magic Link
+* inför inte egen SMTP/OTP-lösning nu
+* framtida förbättring får fokusera på bättre samspel mellan Magic Link och installerad PWA
 
 Detta har tidigare kallats **Alternativ B**.
 
+---
 
-## 25. Supabase Auth och nya användare
+## 15. Supabase Auth och användare
 
 Nya användare administreras för närvarande manuellt via Supabase.
 
-Vid nya användare eller Auth-ändringar har tillfälliga fördröjningar observerats.
+Vid Auth-ändringar har tillfälliga fördröjningar observerats.
 
-Undvik aggressiv felsökning direkt efter Auth-förändringar om problemet kan vara tillfälligt.
+Vid problem:
 
-Verifiera dock alltid verkliga fel via Console/loggar innan slutsats dras.
+* kontrollera Console/loggar
+* verifiera verkliga fel innan större ändringar görs
+* undvik aggressiv felsökning om problemet rimligen kan vara tillfälligt
 
+---
 
-## 26. RLS och säkerhet
+## 16. RLS och säkerhet
 
 Row Level Security används.
 
-Säkerhetslogik ska inte kringgås från frontend.
+Säkerhetslogik får inte kringgås från frontend.
 
-RPC-funktioner som behöver läsa exempelvis `auth.users` kan använda `security definer`, men ska:
+RPC-funktioner som använder `security definer` ska:
 
-- kontrollera `auth.uid()`
-- verifiera workspace-access
-- begränsa execute-rättigheter
-- använda tydliga parametrar
-- undvika att exponera mer data än nödvändigt
+* kontrollera `auth.uid()`
+* verifiera workspace-access
+* begränsa execute-rättigheter
+* använda tydliga parametrar
+* exponera minsta nödvändiga data
 
-Ändra inte RLS-policyer eller `security definer`-funktioner lättvindigt.
+Ändra inte RLS-policyer eller `security definer`-funktioner utan att förstå säkerhetskonsekvenserna.
 
+---
 
-## 27. Databasmigrationer
+## 17. Databasmigrationer
 
-SQL-filer sparas under:
+SQL-filer sparas i:
 
 ```text
 database/
 ```
 
-De fungerar både som:
-
-- dokumentation
-- versionshistorik över databasändringar
+De fungerar som dokumentation och versionshistorik.
 
 Den faktiska databasen ändras först när SQL körs i Supabase.
 
-Att endast lägga SQL i VS Code ändrar inte Supabase-databasen.
+Att endast skapa SQL-filen lokalt ändrar inte databasen.
 
-Vid nya databasändringar:
+Vid databasändring:
 
 1. Skapa ny numrerad SQL-fil.
 2. Kör motsvarande SQL i Supabase.
 3. Testa.
 4. Commit.
 
+---
 
-## 28. Git och deployment
+## 18. Git och deployment
 
-GitHub används som versionshantering.
+GitHub används för versionshantering.
 
 GitHub Pages används för produktion.
 
@@ -726,228 +574,182 @@ Testa med Live Server
 ↓
 Commit
 ↓
-Sync / Push
-↓
-main
+Push till main
 ↓
 GitHub Pages
 ```
 
-### Viktigt
-
 Git-commit påverkar endast kodhistoriken.
 
-Databasdata som sparas via appen skickas till Supabase omedelbart och är inte kopplad till Git-commit.
+Databasoperationer via appen skickas direkt till Supabase och är oberoende av Git.
 
+---
 
-## 29. Live Server
+## 19. Produktstatus och roadmap
 
-Live Server:
+Version 2.1 innehåller bland annat:
 
-- laddar HTML/CSS/JS från den lokala projektmappen
-- kör den senaste lokala koden
-- behöver ingen commit
-- kommunicerar fortfarande med Supabase över internet
+* delade workspaces
+* medlemmar
+* medlemsinbjudan
+* borttagning av medlem
+* workspace-listning
+* workspace-väljare
+* `display_name`/e-post-fallback
 
-Tänk därför:
+Nuvarande fokus:
 
-> Lokal frontend, riktig backend.
+> Stabilisering och verklig användning av Version 2.1.
 
-Var försiktig med destruktiva tester.
+Undvik större nyutveckling tills versionen testats i verklig användning och med flera användare.
 
+Övningsbank/autocomplete är ett viktigt område för:
 
-## 30. Versioner och produktstatus
+* konsekventa övningsnamn
+* återanvändning av `exercise_library`
+* bättre PB-datakvalitet
+* grund för framtida statistik
 
-### Version 2.0
+Möjliga senare områden:
 
-- Supabase-baserad MVP
-- upplägg
-- pass
-- historik
-- PB
-- authentication
-- workspace
+* arkivering av upplägg
+* statistik
+* träningsanalys
+* förbättrad Magic Link/PWA-upplevelse
 
-### Version 2.0.1
+Bygg inte funktioner enbart för att de finns på roadmapen.
 
-- profil/display name
-- förbättrad läsbarhet
-- städad Inställningar
-- borttagen importinformation
-- borttagen offlineinformation
-- borttagen backupinformation
-- borttagen funktion/text för uppdatering av standardupplägg
+---
 
-### Version 2.1
+## 20. UI-principer
 
-- delade workspaces
-- medlemmar
-- bjud in medlem via e-post
-- ta bort medlem
-- visa e-post om `display_name` saknas
-- egen inbjudningsdialog
-- lista användarens workspaces
-- workspace-väljare
-
-Version 2.1 är nyligen utvecklad och ska testas i verklig användning innan större ny funktionalitet byggs.
-
-
-## 31. Kända eller nyligen upptäckta problem
-
-### Rubrik vid delat workspace
-
-När en användare arbetar i någon annans workspace måste rubriken tydligt visa vilket workspace/personens träningsmiljö som är aktiv.
-
-Kontrollera aktuell implementation.
-
-
-### Lägg till övning under pågående pass
-
-En bugg upptäcktes där knappen:
-
-```text
-+ Lägg till övning i dagens pass
-```
-
-inte gjorde något.
-
-Orsaken var att HTML-formuläret fanns men event handlers/logik saknades i Version 2 `src/sessions.js`.
-
-Funktionen har återställts och ska betraktas som kritisk funktionalitet.
-
-Regressionstesta alltid denna funktion efter ändringar i sessionslogiken.
-
-
-## 32. Testning efter ändringar
-
-Vid ändringar i träningsflödet bör minst följande testas.
-
-### Upplägg
-
-- skapa upplägg
-- redigera upplägg
-- ta bort upplägg
-- starta pass från upplägg
-
-### Pass
-
-- starta pass
-- ändra vikt
-- ändra reps
-- markera övning genomförd
-- lämna övning omarkerad
-- lägga till extra övning
-- lägga till set på extra övning
-- spara pass
-
-### Historik
-
-- endast genomförda övningar sparas
-- extra övning sparas
-- vikt/reps är korrekta
-
-### PB
-
-- PB uppdateras från historiken
-- inga uppenbara dubbletter introduceras
-
-### Medlemmar
-
-- lista medlemmar
-- bjuda in medlem
-- okänd e-post hanteras
-- ta bort medlem
-- ägaren kan inte tas bort
-
-### Delade workspaces
-
-- användare ser sitt eget workspace
-- användare ser delat workspace
-- användare kan byta workspace
-- rätt upplägg visas
-- rätt historik visas
-- rätt medlemmar visas
-- aktivt workspace är tydligt i UI
-
-
-## 33. UI-principer
-
-Appen används huvudsakligen på mobil.
+Appen används huvudsakligen på mobil i gymmiljö.
 
 Prioritera:
 
-- stora klickytor
-- tydliga knappar
-- hög kontrast
-- få steg
-- tydlig feedback
-- minimal administration
+* stora klickytor
+* tydliga knappar
+* hög kontrast
+* få steg
+* tydlig feedback
+* minimal administration
 
 Undvik:
 
-- små kontroller
-- lågkontrasttext
-- onödiga informationsblock
-- tekniska termer som användaren inte behöver förstå
+* små kontroller
+* lågkontrasttext
+* onödiga informationsblock
+* tekniska termer användaren inte behöver förstå
 
-Ordet `workspace` används tekniskt men ska helst inte dominera användarupplevelsen.
+`workspace` är ett tekniskt begrepp och bör inte dominera användarupplevelsen.
 
+### Dialoger
 
-## 34. Dialoger
+Medlemsinbjudan använder egen HTML-dialog.
 
-Medlemsinbjudan använder en egen HTML-dialog istället för `window.prompt()`.
+Återgå inte till `window.prompt()` för medlemsinbjudan.
 
-Undvik att återgå till `window.prompt()` för medlemsinbjudan.
+Äldre `alert()` och `confirm()` behöver inte refaktoreras enbart av estetiska skäl.
 
-Det finns fortfarande äldre användning av `alert()` och `confirm()` i projektet.
+---
 
-Dessa behöver inte refaktoreras enbart av estetiska skäl.
+## 21. Regressionstest
 
-Gör en sådan refaktorering först när den ger konkret värde.
+Testa relevanta delar efter varje ändring.
 
+### Upplägg
 
-## 35. Kodändringsprinciper för AI-agenter
+* skapa
+* redigera
+* ta bort
+* starta pass
 
-Innan kod ändras:
+### Pass
+
+* starta pass
+* ändra vikt/reps
+* markera övning genomförd
+* lämna övning omarkerad
+* lägga till extra övning
+* lägga till set på extra övning
+* spara pass
+
+### Historik/PB
+
+* endast genomförda övningar sparas
+* extra övning sparas
+* vikt/reps är korrekta
+* PB uppdateras från historiken
+* inga uppenbara dubbletter introduceras
+
+### Medlemmar
+
+* lista medlemmar
+* bjuda in medlem
+* hantera okänd e-post
+* ta bort medlem
+* ägaren kan inte tas bort
+
+### Delade workspaces
+
+* eget workspace visas
+* delat workspace visas
+* workspace-byte fungerar
+* rätt upplägg visas
+* rätt historik visas
+* rätt medlemmar visas
+* aktivt workspace är tydligt
+
+---
+
+## 22. Arbetsregler för AI-agent
+
+### Innan kod ändras
 
 1. Läs denna fil.
 2. Läs relevant befintlig kod.
 3. Identifiera vilka filer som faktiskt används.
 4. Förstå dataflödet.
-5. Kontrollera om ändringen påverkar RLS/RPC/databasen.
+5. Kontrollera påverkan på databas, RPC och RLS.
 6. Gör minsta rimliga ändring.
 
-Efter kodändring:
+Gissa inte hur befintlig kod fungerar när detta kan verifieras.
 
-1. Beskriv vad som ändrades.
-2. Beskriv vilka filer som ändrades.
-3. Beskriv hur ändringen ska testas.
-4. Påpeka eventuella migrationssteg.
-5. Kör relevanta kontroller om miljön tillåter det.
+### Efter kodändring
 
+Redovisa:
 
-## 36. Undvik detta
+1. vad som ändrades
+2. vilka filer som ändrades
+3. hur ändringen ska testas
+4. eventuella migrationssteg
+5. relevanta kontroller som körts
 
-AI-agenter ska inte utan uttrycklig anledning:
+---
 
-- byta frontend-framework
-- införa React/Vue/Svelte
-- införa TypeScript
-- byta backend från Supabase
-- göra stora refaktoreringar
-- flytta alla filer
-- ändra databasmodell för kosmetiska problem
-- införa avancerad rollmodell
-- bygga offline-synk
-- bygga importfunktion
-- bygga separat PB-tabell
-- automatiskt uppdatera träningsupplägg från genomförda pass
-- ta bort fungerande funktioner för att förenkla arkitekturen
+## 23. Gör inte detta utan uttryckligt beslut
 
+AI-agenten ska inte utan konkret behov eller uttryckligt beslut:
 
-## 37. Prioriteringsordning
+* byta frontend-framework
+* införa React/Vue/Svelte
+* införa TypeScript
+* byta backend från Supabase
+* göra stora refaktoreringar
+* flytta hela kodstrukturen
+* ändra databasmodell av kosmetiska skäl
+* införa avancerad rollmodell
+* bygga offline-synk
+* bygga importfunktion
+* skapa separat PB-tabell
+* automatiskt uppdatera upplägg från genomförda pass
+* ta bort fungerande funktioner för arkitektonisk elegans
 
-När flera möjliga förbättringar finns:
+---
+
+## 24. Prioriteringsordning
+
+När flera förbättringar är möjliga:
 
 1. Kritiska buggar i träningsflödet.
 2. Risk för felaktig eller förlorad träningsdata.
@@ -957,44 +759,10 @@ När flera möjliga förbättringar finns:
 6. Nya funktioner.
 7. Refaktorering.
 
+---
 
-## 38. Roadmap
-
-Närmaste fas:
-
-> Stabilisering och verklig användning av Version 2.1.
-
-Undvik större nyutveckling tills nuvarande version har testats i gymmet och med flera användare.
-
-
-### Pågående större område
-
-**Övningsbank / autocomplete**
-
-Mål:
-
-- konsekventa övningsnamn
-- återanvändning av `exercise_library`
-- bättre PB-datakvalitet
-- grund för framtida statistik
-
-
-### Senare
-
-Möjliga områden:
-
-- arkivering av gamla upplägg
-- statistik
-- träningsanalys
-- förbättrad Magic Link/PWA-upplevelse
-
-Dessa ska inte byggas enbart för att de står här.
-
-Verkligt användarbehov ska styra prioriteringen.
-
-
-## 39. Produktens kärna
-
-Om en ändring riskerar att göra projektet onödigt komplext, återgå till produktens kärna:
+## 25. Produktens kärna
 
 > Min Gym App ska göra det snabbt och enkelt att planera, genomföra och följa upp styrketräning — själv eller tillsammans med någon man delar sin träning med.
+
+När teknisk elegans står mot enkelhet, stabilitet och fungerande träningsflöden: välj enkelhet och stabilitet.
