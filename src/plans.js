@@ -85,6 +85,25 @@ const Plans = {
     this.renderDraft();
   },
 
+  moveExercise(exerciseIndex, direction) {
+    const exercises = this.draft.exercises;
+    const targetIndex = exerciseIndex + direction;
+
+    if (
+      !Number.isInteger(exerciseIndex) ||
+      ![-1, 1].includes(direction) ||
+      targetIndex < 0 ||
+      targetIndex >= exercises.length
+    ) {
+      return;
+    }
+
+    [exercises[exerciseIndex], exercises[targetIndex]] =
+      [exercises[targetIndex], exercises[exerciseIndex]];
+
+    this.renderDraft();
+  },
+
   addSet(exerciseIndex) {
     const exercise = this.draft.exercises[exerciseIndex];
 
@@ -475,14 +494,43 @@ async delete(planId) {
                 >
               </div>
 
-              <button
-                class="danger"
-                onclick="
-                  Plans.removeExercise(${exerciseIndex})
-                "
-              >
-                Ta bort
-              </button>
+              <div class="exercise-editor-actions">
+                <button
+                  type="button"
+                  class="secondary exercise-order-button"
+                  aria-label="Flytta övningen upp"
+                  title="Flytta upp"
+                  onclick="Plans.moveExercise(${exerciseIndex}, -1)"
+                  ${exerciseIndex === 0 ? "disabled" : ""}
+                >
+                  &#8593;
+                </button>
+
+                <button
+                  type="button"
+                  class="secondary exercise-order-button"
+                  aria-label="Flytta övningen ned"
+                  title="Flytta ned"
+                  onclick="Plans.moveExercise(${exerciseIndex}, 1)"
+                  ${
+                    exerciseIndex === this.draft.exercises.length - 1
+                      ? "disabled"
+                      : ""
+                  }
+                >
+                  &#8595;
+                </button>
+
+                <button
+                  type="button"
+                  class="danger"
+                  onclick="
+                    Plans.removeExercise(${exerciseIndex})
+                  "
+                >
+                  Ta bort
+                </button>
+              </div>
             </div>
 
             ${setsHtml}

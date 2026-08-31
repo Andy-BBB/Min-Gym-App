@@ -115,7 +115,14 @@ const History = {
 
           const currentBest = personalBests.get(exerciseKey);
 
-          if (!currentBest || weight > currentBest.weight) {
+          const isBetterResult = !currentBest ||
+            weight > currentBest.weight ||
+            (
+              weight === currentBest.weight &&
+              reps > currentBest.reps
+            );
+
+          if (isBetterResult) {
             personalBests.set(exerciseKey, {
               exercise: canonicalExercise?.name || exercise.name,
               weight,
