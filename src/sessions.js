@@ -1,5 +1,6 @@
 const Sessions = {
   activeSession: null,
+  celebrationTimeoutIds: [],
 
   async init() {
     console.log("Sessions.init() startar.");
@@ -409,6 +410,7 @@ const Sessions = {
 
     try {
       const savedSession = this.activeSession;
+      const previousPersonalBests = History.calculatePB();
 
       await Storage.saveSession(savedSession);
 
@@ -419,6 +421,11 @@ const Sessions = {
       await History.load();
       History.render();
       History.renderPB();
+
+      const newPersonalBests = History.findNewPersonalBests(
+        previousPersonalBests,
+        completedExercises
+      );
 
       const exerciseCount = completedExercises.length;
 
@@ -448,6 +455,10 @@ const Sessions = {
 
       confirmation.classList.remove("hidden");
 
+      if (newPersonalBests.length > 0) {
+        this.showPersonalBestCelebration(newPersonalBests);
+      }
+
       console.log("Sessions.save(): passet sparades.");
     } catch (error) {
       console.error("Sessions.save() misslyckades:", error);
@@ -459,6 +470,110 @@ const Sessions = {
       saveButton.disabled = false;
       saveButton.textContent = "Spara pass";
     }
+  },
+
+  showPersonalBestCelebration(personalBests) {
+    this.celebrationTimeoutIds.forEach(timeoutId => {
+      window.clearTimeout(timeoutId);
+    });
+
+    this.celebrationTimeoutIds = [];
+
+    document.querySelector(".pb-celebration")?.remove();
+
+    const celebration = document.createElement("div");
+    celebration.className = "pb-celebration";
+    celebration.setAttribute("role", "status");
+    celebration.setAttribute("aria-live", "polite");
+
+    const confetti = document.createElement("div");
+    confetti.className = "pb-confetti";
+    confetti.setAttribute("aria-hidden", "true");
+
+    const colors = [
+      "#2563eb",
+      "#60a5fa",
+      "#facc15",
+      "#22c55e",
+      "#f97316",
+      "#ec4899"
+    ];
+
+    for (let index = 0; index < 42; index += 1) {
+      const piece = document.createElement("span");
+      piece.className = "pb-confetti-piece";
+      piece.style.setProperty(
+        "--confetti-left",
+        `${(index * 37) % 101}%`
+      );
+      piece.style.setProperty(
+        "--confetti-delay",
+        `${(index % 9) * 0.07}s`
+      );
+      piece.style.setProperty(
+        "--confetti-duration",
+        `${2.4 + (index % 6) * 0.14}s`
+      );
+      piece.style.setProperty(
+        "--confetti-drift",
+        `${((index % 7) - 3) * 14}px`
+      );
+      piece.style.setProperty(
+        "--confetti-rotation",
+        `${360 + (index % 5) * 90}deg`
+      );
+      piece.style.setProperty(
+        "--confetti-color",
+        colors[index % colors.length]
+      );
+      confetti.appendChild(piece);
+    }
+
+    const card = document.createElement("div");
+    card.className = "pb-celebration-card";
+
+    const icon = document.createElement("span");
+    icon.className = "pb-celebration-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "🏆";
+
+    const title = document.createElement("strong");
+    title.className = "pb-celebration-title";
+    title.textContent = personalBests.length === 1
+      ? "Nytt personbästa!"
+      : "Nya personbästa!";
+
+    const results = document.createElement("div");
+    results.className = "pb-celebration-results";
+
+    personalBests.forEach(personalBest => {
+      const result = document.createElement("div");
+      result.className = "pb-celebration-result";
+
+      const exerciseName = document.createElement("span");
+      exerciseName.textContent = personalBest.exercise;
+
+      const lift = document.createElement("strong");
+      lift.textContent =
+        `${personalBest.weight} kg × ${personalBest.reps}`;
+
+      result.append(exerciseName, lift);
+      results.appendChild(result);
+    });
+
+    card.append(icon, title, results);
+    celebration.append(confetti, card);
+    document.body.appendChild(celebration);
+
+    this.celebrationTimeoutIds.push(
+      window.setTimeout(() => {
+        celebration.classList.add("is-leaving");
+      }, 3600),
+      window.setTimeout(() => {
+        celebration.remove();
+        this.celebrationTimeoutIds = [];
+      }, 4000)
+    );
   },
 
   render() {

@@ -98,6 +98,15 @@ const History = {
     `;
   },
 
+  isBetterResult(weight, reps, currentBest) {
+    return !currentBest ||
+      weight > currentBest.weight ||
+      (
+        weight === currentBest.weight &&
+        reps > currentBest.reps
+      );
+  },
+
   calculatePB() {
     const personalBests = new Map();
 
@@ -115,15 +124,15 @@ const History = {
 
           const currentBest = personalBests.get(exerciseKey);
 
-          const isBetterResult = !currentBest ||
-            weight > currentBest.weight ||
-            (
-              weight === currentBest.weight &&
-              reps > currentBest.reps
-            );
+          const isBetterResult = this.isBetterResult(
+            weight,
+            reps,
+            currentBest
+          );
 
           if (isBetterResult) {
             personalBests.set(exerciseKey, {
+              key: exerciseKey,
               exercise: canonicalExercise?.name || exercise.name,
               weight,
               reps,
@@ -138,6 +147,60 @@ const History = {
       return first.exercise.localeCompare(
         second.exercise,
         "sv"
+      );
+    });
+  },
+
+  findNewPersonalBests(previousPersonalBests, completedExercises) {
+    const previousByKey = new Map(
+      previousPersonalBests.map(personalBest => {
+        return [personalBest.key, personalBest];
+      })
+    );
+
+    const previousByName = new Map(
+      previousPersonalBests.map(personalBest => {
+        return [
+          Exercises.identityKey(personalBest.exercise),
+          personalBest
+        ];
+      })
+    );
+
+    return this.calculatePB().filter(personalBest => {
+      const resultWasCompletedNow = completedExercises.some(exercise => {
+        const hasMatchingId =
+          exercise.exerciseId &&
+          exercise.exerciseId === personalBest.key;
+
+        const hasMatchingName =
+          Exercises.identityKey(exercise.name) ===
+          Exercises.identityKey(personalBest.exercise);
+
+        if (!hasMatchingId && !hasMatchingName) {
+          return false;
+        }
+
+        return exercise.sets.some(set => {
+          return Number(set.weight || 0) === personalBest.weight &&
+            Number(set.reps || 0) === personalBest.reps;
+        });
+      });
+
+      if (!resultWasCompletedNow) {
+        return false;
+      }
+
+      const previousPersonalBest =
+        previousByKey.get(personalBest.key) ||
+        previousByName.get(
+          Exercises.identityKey(personalBest.exercise)
+        );
+
+      return this.isBetterResult(
+        personalBest.weight,
+        personalBest.reps,
+        previousPersonalBest
       );
     });
   },

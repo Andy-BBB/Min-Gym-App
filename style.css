@@ -399,6 +399,135 @@ button:disabled {
   border-color: #cbeace;
 }
 
+.pb-celebration {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 400ms ease;
+}
+
+.pb-celebration.is-leaving {
+  opacity: 0;
+}
+
+.pb-confetti {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+}
+
+.pb-confetti-piece {
+  position: absolute;
+  top: -24px;
+  left: var(--confetti-left);
+  width: 9px;
+  height: 15px;
+  background: var(--confetti-color);
+  border-radius: 2px;
+  animation: pb-confetti-fall var(--confetti-duration) ease-in
+    var(--confetti-delay) forwards;
+}
+
+.pb-celebration-card {
+  position: relative;
+  z-index: 1;
+  width: min(360px, calc(100vw - 32px));
+  padding: 24px 20px;
+  color: var(--text);
+  text-align: center;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  border-radius: 20px;
+  box-shadow: 0 20px 55px rgba(17, 23, 34, .3);
+  animation: pb-celebration-pop 300ms ease-out;
+}
+
+.pb-celebration-icon,
+.pb-celebration-title,
+.pb-celebration-result span,
+.pb-celebration-result strong {
+  display: block;
+}
+
+.pb-celebration-icon {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.pb-celebration-title {
+  margin-top: 10px;
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.pb-celebration-results {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.pb-celebration-result span {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pb-celebration-result strong {
+  margin-top: 2px;
+  font-size: 20px;
+}
+
+@keyframes pb-celebration-pop {
+  from {
+    opacity: 0;
+    transform: scale(.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pb-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(
+      var(--confetti-drift),
+      calc(100vh + 48px),
+      0
+    ) rotate(var(--confetti-rotation));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-confetti-piece {
+    display: none;
+  }
+
+  .pb-celebration,
+  .pb-celebration-card {
+    animation: none;
+    transition: none;
+  }
+}
+
 .empty {
   padding: 18px 8px;
   color: var(--muted);
