@@ -106,6 +106,7 @@ MIN-GYM-APP/
     ├── plans.js
     ├── sessions.js
     ├── storage.js
+    ├── statistics.js
     └── utils.js
 ```
 
@@ -163,6 +164,19 @@ Ansvarar för träningshistorik, tidigare pass och PB.
 
 > Historiken är sanningen för genomförd träning.
 
+### `src/statistics.js`
+
+Ansvarar för statistikvyn:
+
+* översikt och periodfilter
+* e1RM-baserad styrkeutveckling
+* träningssvit och målsvit
+* kalender och veckodagsfördelning
+* styrkemål och veckomål i UI
+
+Statistikresultat beräknas från historiken och ska inte lagras som
+duplicerade sammanställningar i databasen.
+
 ### `src/storage.js`
 
 Kommunikationslager mellan frontend och Supabase för bland annat övningar, upplägg, sessioner, medlemmar och workspaces. Övriga moduler ska normalt använda `Storage`.
@@ -200,6 +214,8 @@ plan_sets
 workout_sessions
 session_exercises
 session_sets
+exercise_strength_goals
+workspace_training_settings
 ```
 
 Verifiera aktuell databasmodell och exakta RPC-signaturer mot SQL-filerna i `database/` innan backendrelaterad kod ändras.
@@ -291,6 +307,10 @@ PB beräknas från historiken. Det finns ingen separat PB-tabell som källa till
 > Historiken är sanningen.
 
 Skapa inte duplicerad PB-data som kan hamna ur synk.
+
+Statistik ska på samma sätt beräknas från genomförda pass. Endast
+användarvalda mål lagras separat. Styrkemål ska kopplas till
+`exercise_library.id`, inte enbart till övningens fritextnamn.
 
 ## 12. Övningsbank
 

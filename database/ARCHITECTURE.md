@@ -52,6 +52,7 @@ Autentisering
 │   ├── storage.js
 │   ├── plans.js
 │   ├── sessions.js
+│   ├── statistics.js
 │   └── history.js
 │
 ├── database/
@@ -192,6 +193,19 @@ Ansvarar för:
 
 - Historik
 - Personbästa
+
+---
+
+## src/statistics.js
+
+Ansvarar för:
+
+- Översikt, styrka, vanor och historik under Statistik
+- Periodfiltrering
+- e1RM, sviter, kalender och veckodagsfördelning
+- UI för styrkemål och veckomål
+
+Statistik beräknas från historiken. Endast användarvalda mål lagras.
 
 ---
 

@@ -47,6 +47,7 @@ const app = {
     await Plans.init();
     await Sessions.init();
     await History.init();
+    await Statistics.init();
     await this.renderMembers();
 
     console.log("Min Gym App Version 2 är klar.");

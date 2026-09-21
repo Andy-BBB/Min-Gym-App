@@ -38,23 +38,57 @@
 
     <nav class="tabs" aria-label="Huvudnavigering">
       <button class="tab active" data-tab="today">
-        <span class="tab-icon" aria-hidden="true">🏋️</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6.5 6.5 11 11"></path>
+          <path d="m3.5 3.5 3 3"></path>
+          <path d="m17.5 17.5 3 3"></path>
+          <path d="m2 6 4-4"></path>
+          <path d="m18 22 4-4"></path>
+          <path d="m3 10 7-7"></path>
+          <path d="m14 21 7-7"></path>
+        </svg>
         <span class="tab-text">Pass</span>
       </button>
-      <button class="tab" data-tab="history">
-        <span class="tab-icon" aria-hidden="true">📅</span>
-        <span class="tab-text">Historik</span>
-      </button>
-      <button class="tab" data-tab="pb">
-        <span class="tab-icon" aria-hidden="true">🏆</span>
-        <span class="tab-text">PB</span>
-      </button>
       <button class="tab" data-tab="plans">
-        <span class="tab-icon" aria-hidden="true">📋</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <path d="M9 12h6"></path>
+          <path d="M9 16h6"></path>
+        </svg>
         <span class="tab-text">Upplägg</span>
       </button>
+      <button class="tab" data-tab="statistics">
+        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20V10"></path>
+          <path d="M10 20V4"></path>
+          <path d="M16 20v-7"></path>
+          <path d="M22 20H2"></path>
+        </svg>
+        <span class="tab-text">Statistik</span>
+      </button>
+      <button class="tab" data-tab="pb">
+        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 21h8"></path>
+          <path d="M12 17v4"></path>
+          <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"></path>
+          <path d="M7 6H4a2 2 0 0 0 2 4h1"></path>
+          <path d="M17 6h3a2 2 0 0 1-2 4h-1"></path>
+        </svg>
+        <span class="tab-text">PB</span>
+      </button>
       <button class="tab" data-tab="settings">
-        <span class="tab-icon" aria-hidden="true">⚙️</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v3"></path>
+          <path d="M12 19v3"></path>
+          <path d="m4.93 4.93 2.12 2.12"></path>
+          <path d="m16.95 16.95 2.12 2.12"></path>
+          <path d="M2 12h3"></path>
+          <path d="M19 12h3"></path>
+          <path d="m4.93 19.07 2.12-2.12"></path>
+          <path d="m16.95 7.05 2.12-2.12"></path>
+        </svg>
         <span class="tab-text">Inställningar</span>
       </button>
     </nav>
@@ -106,8 +140,61 @@
     <section class="card"><h2>Mina upplägg</h2><div id="plansList"></div></section>
   </section>
 
-  <section id="history" class="view">
-    <section class="card"><h2>Historik</h2><p class="muted">Endast genomförda övningar sparas.</p><div id="historyList"></div></section>
+  <section id="statistics" class="view">
+    <section class="card statistics-header">
+      <h2>📊 Statistik</h2>
+      <p class="muted">Följ din träning, styrka och kontinuitet.</p>
+
+      <div class="statistics-period-field">
+        <label for="statisticsPeriod">Period</label>
+        <select id="statisticsPeriod">
+          <option value="threeMonths">Senaste 3 månaderna</option>
+          <option value="year">I år</option>
+          <option value="all">All tid</option>
+        </select>
+      </div>
+
+      <div class="statistics-subtabs" role="tablist" aria-label="Statistik">
+        <button type="button" class="statistics-subtab active" data-statistics-tab="overview" role="tab" aria-selected="true">Översikt</button>
+        <button type="button" class="statistics-subtab" data-statistics-tab="strength" role="tab" aria-selected="false">Styrka</button>
+        <button type="button" class="statistics-subtab" data-statistics-tab="habits" role="tab" aria-selected="false">Vanor</button>
+        <button type="button" class="statistics-subtab" data-statistics-tab="history" role="tab" aria-selected="false">Historik</button>
+      </div>
+    </section>
+
+    <div id="statisticsStatus" class="card statistics-status" role="status">
+      Laddar statistik...
+    </div>
+
+    <div id="statisticsOverview" class="statistics-panel active" role="tabpanel">
+      <div id="statisticsOverviewContent"></div>
+    </div>
+
+    <div id="statisticsStrength" class="statistics-panel" role="tabpanel">
+      <section class="card">
+        <div class="section-title-row">
+          <div>
+            <h2>Styrka</h2>
+            <p class="muted">Utveckling baserad på uppskattad maxstyrka.</p>
+          </div>
+        </div>
+        <label for="strengthExerciseSelect">Övning</label>
+        <select id="strengthExerciseSelect"></select>
+      </section>
+      <div id="statisticsStrengthContent"></div>
+    </div>
+
+    <div id="statisticsHabits" class="statistics-panel" role="tabpanel">
+      <div id="statisticsHabitsContent"></div>
+    </div>
+
+    <div id="statisticsHistory" class="statistics-panel" role="tabpanel">
+      <section class="card">
+        <h2>Historik</h2>
+        <p class="muted">Endast genomförda övningar sparas.</p>
+        <div id="historyList"></div>
+      </section>
+    </div>
   </section>
 
   <section id="pb" class="view">
@@ -288,6 +375,26 @@
   </form>
 </dialog>
 
+<dialog id="strengthGoalDialog" class="app-dialog">
+  <form id="strengthGoalForm" method="dialog">
+    <h3>🎯 Styrkemål</h3>
+    <p id="strengthGoalExerciseName" class="muted"></p>
+
+    <label for="strengthGoalWeight">Målvikt, kg</label>
+    <input id="strengthGoalWeight" type="number" inputmode="decimal" min="0.5" step="0.5" required>
+
+    <label for="strengthGoalReps">Repetitioner</label>
+    <input id="strengthGoalReps" type="number" inputmode="numeric" min="1" step="1" required>
+
+    <p id="strengthGoalError" class="form-error small" hidden></p>
+
+    <div class="dialog-actions">
+      <button id="cancelStrengthGoalBtn" type="button" class="secondary">Avbryt</button>
+      <button id="saveStrengthGoalBtn" type="submit">Spara mål</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="supabase.js"></script>
@@ -299,7 +406,10 @@
 <script src="src/plans.js"></script>
 <script src="src/sessions.js"></script>
 <script src="src/history.js"></script>
+<script src="src/statistics.js"></script>
 <script src="src/app.js"></script>
 
 <script src="auth.js"></script>
 <script src="src/pwa.js"></script>
+</body>
+</html>

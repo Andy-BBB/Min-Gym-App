@@ -422,6 +422,10 @@ const Sessions = {
       History.render();
       History.renderPB();
 
+      if (window.Statistics) {
+        Statistics.refresh();
+      }
+
       const newPersonalBests = History.findNewPersonalBests(
         previousPersonalBests,
         completedExercises

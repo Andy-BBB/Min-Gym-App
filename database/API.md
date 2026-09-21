@@ -102,6 +102,23 @@ calculatePB()
 
 ---
 
+# statistics.js
+
+Ansvar
+
+- Beräkna och visa statistik från genomförda pass
+- Hantera periodfilter, e1RM, sviter och mål
+
+Publika funktioner
+
+init()
+
+refresh()
+
+render()
+
+---
+
 # storage.js
 
 Ansvar
@@ -121,6 +138,14 @@ deletePlan()
 loadSessions()
 
 saveSession()
+
+loadStrengthGoals()
+
+saveStrengthGoal()
+
+loadTrainingSettings()
+
+saveWeeklySessionGoal()
 
 ---
 

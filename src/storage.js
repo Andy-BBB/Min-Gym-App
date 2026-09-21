@@ -18,6 +18,103 @@ const Storage = {
     return data || [];
   },
 
+  async loadStrengthGoals() {
+    if (!workspace.id) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const { data, error } = await supabaseClient
+      .from("exercise_strength_goals")
+      .select("id, exercise_id, target_weight_kg, target_reps")
+      .eq("workspace_id", workspace.id);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data || []).map(goal => ({
+      id: goal.id,
+      exerciseId: goal.exercise_id,
+      weight: Number(goal.target_weight_kg),
+      reps: Number(goal.target_reps)
+    }));
+  },
+
+  async saveStrengthGoal(exerciseId, weight, reps) {
+    if (!workspace.id || !exerciseId) {
+      throw new Error("Workspace eller övning saknas.");
+    }
+
+    const { data, error } = await supabaseClient
+      .from("exercise_strength_goals")
+      .upsert({
+        workspace_id: workspace.id,
+        exercise_id: exerciseId,
+        target_weight_kg: Number(weight),
+        target_reps: Number(reps),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: "workspace_id,exercise_id"
+      })
+      .select("id, exercise_id, target_weight_kg, target_reps")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      exerciseId: data.exercise_id,
+      weight: Number(data.target_weight_kg),
+      reps: Number(data.target_reps)
+    };
+  },
+
+  async loadTrainingSettings() {
+    if (!workspace.id) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const { data, error } = await supabaseClient
+      .from("workspace_training_settings")
+      .select("weekly_session_goal")
+      .eq("workspace_id", workspace.id)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return data
+      ? { weeklySessionGoal: Number(data.weekly_session_goal) }
+      : null;
+  },
+
+  async saveWeeklySessionGoal(weeklySessionGoal) {
+    if (!workspace.id) {
+      throw new Error("Aktivt workspace saknas.");
+    }
+
+    const { data, error } = await supabaseClient
+      .from("workspace_training_settings")
+      .upsert({
+        workspace_id: workspace.id,
+        weekly_session_goal: Number(weeklySessionGoal),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: "workspace_id"
+      })
+      .select("weekly_session_goal")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return Number(data.weekly_session_goal);
+  },
+
   async loadPlans() {
     if (!workspace.id) {
       throw new Error("Aktivt workspace saknas.");

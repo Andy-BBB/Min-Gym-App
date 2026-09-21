@@ -1,4 +1,4 @@
-const CACHE_NAME = "min-gym-app-shell-v1";
+const CACHE_NAME = "min-gym-app-shell-v5";
 const CACHE_PREFIX = "min-gym-app-shell-";
 const SUPABASE_LIBRARY_URL =
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -18,6 +18,7 @@ const APP_SHELL = [
   "./src/plans.js",
   "./src/sessions.js",
   "./src/history.js",
+  "./src/statistics.js",
   "./src/app.js",
   "./auth.js",
   "./src/pwa.js"

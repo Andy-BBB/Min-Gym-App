@@ -205,7 +205,7 @@ const History = {
     });
   },
 
-  render() {
+  render(sessionSource = app.state.sessions) {
     const historyList =
       document.getElementById("historyList");
 
@@ -217,13 +217,11 @@ const History = {
       return;
     }
 
-    const sessions = app.state.sessions;
-    const summaryHtml = this.getSummaryHtml();
+    const sessions = sessionSource;
 
     if (sessions.length === 0) {
       historyList.innerHTML =
-        `${summaryHtml}
-        <div class="empty">Ingen historik ännu.</div>`;
+        '<div class="empty">Ingen historik för vald period.</div>';
 
       return;
     }
@@ -266,6 +264,12 @@ const History = {
                 <span class="muted history-plan-name">
                   ${utils.escapeHtml(session.planName)}
                 </span>
+
+                <span class="muted history-exercise-count">
+                  ${session.exercises.length === 1
+                    ? "1 genomförd övning"
+                    : `${session.exercises.length} genomförda övningar`}
+                </span>
               </span>
 
               <span class="history-chevron" aria-hidden="true">
@@ -281,7 +285,7 @@ const History = {
       })
       .join("");
 
-    historyList.innerHTML = summaryHtml + sessionsHtml;
+    historyList.innerHTML = sessionsHtml;
   },
 
   renderPB() {
