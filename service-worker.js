@@ -1,129 +1,59 @@
-const CACHE_NAME = "min-gym-app-shell-v5";
-const CACHE_PREFIX = "min-gym-app-shell-";
-const SUPABASE_LIBRARY_URL =
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+// Security release: app code requires a network connection. No offline shell.
+const RELEASE_VERSION = "2026.11.12-rc1";
+const WORKER_VERSION = 6;
+const LEGACY_CACHE_PATTERN = /^min-gym-app-shell-v([1-5])$/;
+const LEGACY_SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const APP_SCOPE = new URL(self.registration.scope);
 
-const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./supabase.js",
-  "./workspace.js",
-  "./src/utils.js",
-  "./src/storage.js",
-  "./src/exercises.js",
-  "./src/plans.js",
-  "./src/sessions.js",
-  "./src/history.js",
-  "./src/statistics.js",
-  "./src/app.js",
-  "./auth.js",
-  "./src/pwa.js"
-];
-const APP_FILE_URLS = new Set(
-  APP_SHELL.map((path) => new URL(path, self.registration.scope).href)
-);
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(APP_SHELL);
-
-      try {
-        await cache.add(SUPABASE_LIBRARY_URL);
-      } catch (error) {
-        console.warn("Supabase-biblioteket kunde inte förhandslagras:", error);
-      }
-    })()
-  );
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      const cacheNames = await caches.keys();
-
-      await Promise.all(
-        cacheNames
-          .filter(
-            (cacheName) =>
-              cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME
-          )
-          .map((cacheName) => caches.delete(cacheName))
-      );
-
-      await self.clients.claim();
-    })()
-  );
-});
-
-async function fetchAndCache(request) {
-  const cache = await caches.open(CACHE_NAME);
-
-  try {
-    const response = await fetch(request);
-
-    if (response.ok || response.type === "opaque") {
-      await cache.put(request, response.clone());
-    }
-
-    return response;
-  } catch (error) {
-    const cachedResponse = await cache.match(request);
-
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-    throw error;
-  }
+function isInAppScope(url) {
+  return url.origin === APP_SCOPE.origin &&
+    url.pathname.startsWith(APP_SCOPE.pathname);
 }
 
-async function fetchNavigation(request) {
-  const cache = await caches.open(CACHE_NAME);
-
-  try {
-    const response = await fetch(request);
-
-    if (response.ok) {
-      await cache.put("./index.html", response.clone());
-    }
-
-    return response;
-  } catch (error) {
-    const cachedResponse = await cache.match("./index.html");
-
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-    throw error;
-  }
+async function isOwnedLegacyCache(name) {
+  if (!LEGACY_CACHE_PATTERN.test(name)) return false;
+  const cache = await caches.open(name);
+  const requests = await cache.keys();
+  const indexUrl = new URL("./index.html", APP_SCOPE).href;
+  // CacheStorage is shared by an origin, not separated by worker scope.
+  // Require this app's shell and reject entries belonging to another scope.
+  return requests.some(request => request.url === indexUrl) &&
+    requests.every(request => {
+      const url = new URL(request.url);
+      return isInAppScope(url) || url.href === LEGACY_SDK_URL;
+    });
 }
 
-self.addEventListener("fetch", (event) => {
+// No skipWaiting or clients.claim: existing documents retain their worker
+// until closed. Never replace a user's in-memory training session on update.
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    for (const name of await caches.keys()) {
+      if (await isOwnedLegacyCache(name)) await caches.delete(name);
+    }
+  })());
+});
+
+self.addEventListener("fetch", event => {
   const { request } = event;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (!isInAppScope(url)) return;
+  const isAppResource = request.mode === "navigate" ||
+    ["document", "script", "style", "image", "font", "manifest"].includes(request.destination) ||
+    /\.(?:html?|m?js)$/i.test(url.pathname);
+  if (!isAppResource) return;
+  // Bypass HTTP cache too. Network errors fail; no stale code is substituted.
+  event.respondWith(fetch(request, { cache: "no-store" }));
+});
 
-  if (request.method !== "GET") {
-    return;
-  }
-
-  const requestUrl = new URL(request.url);
-  const isAppNavigation =
-    request.mode === "navigate" && requestUrl.origin === self.location.origin;
-  const isAppFile = APP_FILE_URLS.has(requestUrl.href);
-  const isSupabaseLibrary = requestUrl.href === SUPABASE_LIBRARY_URL;
-
-  if (isAppNavigation) {
-    event.respondWith(fetchNavigation(request));
-    return;
-  }
-
-  if (isAppFile || isSupabaseLibrary) {
-    event.respondWith(fetchAndCache(request));
+// Read-only version probe for release verification. No activation command.
+self.addEventListener("message", event => {
+  if (event.data?.type === "GET_RELEASE_VERSION" && event.ports?.[0]) {
+    event.ports[0].postMessage({
+      release: RELEASE_VERSION,
+      workerVersion: WORKER_VERSION,
+      appCodePolicy: "network-only"
+    });
   }
 });

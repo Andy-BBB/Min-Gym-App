@@ -2,12 +2,14 @@ const Plans = {
   draft: null,
 
   async init() {
+    const context = app.requireContext(false);
     console.log("Plans.init() startar.");
 
     this.resetDraft();
     this.bindEvents();
 
     await this.load();
+      app.assertCurrent(context);
 
     this.renderEditor();
     this.renderDraft();
@@ -234,8 +236,10 @@ const Plans = {
   },
 
   async load() {
+    const context = app.requireContext(false);
     try {
       const loadedPlans = await Storage.loadPlans();
+      app.assertCurrent(context);
 
       app.state.plans = loadedPlans;
 
@@ -245,6 +249,7 @@ const Plans = {
 
       return loadedPlans;
     } catch (error) {
+      if (app.isStale(error, context)) throw error;
       console.error("Plans.load() misslyckades:", error);
       throw error;
     }
@@ -302,6 +307,7 @@ const Plans = {
   },
 
   async savePlan(plan, logName) {
+    const context = app.requireContext(true);
     const savePlanButton =
       document.getElementById("savePlanBtn");
 
@@ -310,16 +316,20 @@ const Plans = {
 
     try {
       await Storage.savePlan(plan);
+      app.assertCurrent(context);
 
       await Exercises.reload().catch(error => {
+        if (app.isStale(error, context)) return;
         console.error("Övningsbanken kunde inte laddas om:", error);
       });
+      app.assertCurrent(context);
 
       this.resetDraft();
 
       document.getElementById("planName").value = "";
 
       await this.load();
+      app.assertCurrent(context);
 
       this.renderEditor();
       this.renderDraft();
@@ -327,12 +337,14 @@ const Plans = {
 
       console.log(`${logName}: upplägget sparades.`);
     } catch (error) {
+      if (app.isStale(error, context)) return;
       console.error(`${logName} misslyckades:`, error);
 
       alert(
         `Kunde inte spara upplägget: ${error.message}`
       );
     } finally {
+      if (!app.isCurrent(context)) return;
       savePlanButton.disabled = false;
       this.renderEditor();
     }
@@ -348,6 +360,7 @@ const Plans = {
   },
 
 async delete(planId) {
+    const context = app.requireContext(true);
   const plan = app.state.plans.find(item => {
     return item.id === planId;
   });
@@ -367,16 +380,19 @@ async delete(planId) {
 
   try {
     await Storage.deletePlan(planId);
+      app.assertCurrent(context);
 
     if (this.draft?.id === planId) {
       this.cancelEdit();
     }
 
     await this.load();
+      app.assertCurrent(context);
     this.render();
 
     console.log("Plans.delete(): upplägget togs bort.");
   } catch (error) {
+    if (app.isStale(error, context)) return;
     console.error("Plans.delete() misslyckades:", error);
 
     alert(

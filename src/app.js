@@ -8,50 +8,129 @@ const app = {
   isInitialized: false,
   initializationPromise: null,
 
-  async init() {
-    if (this.isInitialized) {
-      console.log("Version 2 är redan startad.");
-      return;
-    }
+  context: null,
+  generation: 0,
+  initializedKey: null,
+  // Untouched markup, captured before the first authenticated render.
+  pristineNodes: [...document.querySelectorAll("main.app-shell, body > dialog")]
+    .map(node => ({ node, template: node.cloneNode(true) })),
 
-    if (this.initializationPromise) {
-      return this.initializationPromise;
-    }
+  isCurrent(context) {
+    return !!context && this.context === context &&
+      !context.controller.signal.aborted &&
+      (!context.workspaceId || workspace.id === context.workspaceId);
+  },
 
-    this.initializationPromise = this.start();
-
-    try {
-      await this.initializationPromise;
-      this.isInitialized = true;
-    } finally {
-      this.initializationPromise = null;
+  assertCurrent(context) {
+    if (!this.isCurrent(context)) {
+      const error = new Error("Sessionen eller arbetsytan har ändrats.");
+      error.name = "StaleSessionError";
+      throw error;
     }
   },
 
-  async start() {
-    console.log("Min Gym App Version 2 startar.");
-
-    if (!workspace.id) {
-      throw new Error(
-        "Version 2 kan inte starta utan ett aktivt workspace."
-      );
+  requireContext(ready = false) {
+    const context = this.context;
+    this.assertCurrent(context);
+    if (!context.workspaceId || (ready && !this.isInitialized)) {
+      throw new Error("Appen verifierar fortfarande din session.");
     }
+    return context;
+  },
 
+  isStale(error, context) {
+    return error?.name === "StaleSessionError" || !this.isCurrent(context);
+  },
+
+  resetSession(session = null) {
+    this.context?.controller.abort();
+    this.generation += 1;
+    this.context = null;
+    this.isInitialized = false;
+    this.initializedKey = null;
+    this.initializationPromise = null;
+    // Hide and disable the old UI synchronously, before any asynchronous work.
+    document.getElementById("loginOverlay").style.display = "flex";
+    this.pristineNodes.forEach(entry => {
+      entry.node.inert = true;
+      entry.node.style.display = "none";
+      if (entry.node.open) entry.node.close();
+    });
+    Sessions.celebrationTimeoutIds.forEach(id => clearTimeout(id));
+    Sessions.celebrationTimeoutIds = [];
+    document.querySelectorAll(".pb-celebration").forEach(node => node.remove());
+    this.state = { plans: [], sessions: [], exerciseLibrary: [] };
+    Exercises.items = [];
+    Plans.draft = null;
+    Sessions.activeSession = null;
+    Object.assign(Statistics, {
+      period: "threeMonths", activeTab: "overview", strengthExerciseId: null,
+      strengthGoals: [], weeklySessionGoal: 3, goalsAvailable: true,
+      loadError: null, isBound: false
+    });
+    workspace.clear();
+    // Replacement also discards form values, dialogs, suggestions and old listeners.
+    this.pristineNodes.forEach(entry => {
+      const fresh = entry.template.cloneNode(true);
+      fresh.inert = true;
+      if (fresh.matches("main")) fresh.style.display = "none";
+      entry.node.replaceWith(fresh);
+      entry.node = fresh;
+    });
+    document.getElementById("invite-member-btn").hidden = true;
+    if (session) {
+      this.context = {
+        generation: this.generation, userId: session.user.id,
+        workspaceId: null, accessToken: session.access_token,
+        controller: new AbortController(), started: false
+      };
+    }
+    return this.context;
+  },
+
+  async init(context) {
+    this.assertCurrent(context);
+    const key = `${context.userId}:${context.workspaceId}`;
+    if (!context.workspaceId) throw new Error("Aktivt workspace saknas.");
+    if (this.isInitialized && this.initializedKey === key) return;
+    if (this.initializationPromise?.context === context) {
+      return this.initializationPromise.promise;
+    }
+    const pending = { context, promise: this.start(context) };
+    this.initializationPromise = pending;
+    try {
+      await pending.promise;
+      this.assertCurrent(context);
+      this.initializedKey = key;
+      this.isInitialized = true;
+    } finally {
+      if (this.initializationPromise === pending) this.initializationPromise = null;
+    }
+  },
+
+  async start(context) {
+    this.assertCurrent(context);
     this.setupTabs();
     this.setupProfile();
     this.setupMembers();
     this.setupWorkspaceSelector();
     this.renderAppTitle();
-
-    await Exercises.init();
-    await Plans.init();
-    await Sessions.init();
-    await History.init();
-    await Statistics.init();
+    for (const module of [Exercises, Plans, Sessions, History, Statistics]) {
+      await module.init();
+      this.assertCurrent(context);
+    }
     await this.renderMembers();
+    this.assertCurrent(context);
+  },
 
-    console.log("Min Gym App Version 2 är klar.");
-    console.log("Version 2 state:", this.state);
+  reveal(context) {
+    this.assertCurrent(context);
+    if (!this.isInitialized || this.initializedKey !== `${context.userId}:${context.workspaceId}`) {
+      throw new Error("Appens session är inte färdigverifierad.");
+    }
+    this.pristineNodes.forEach(entry => { entry.node.inert = false; });
+    document.querySelector("main.app-shell").style.display = "";
+    document.getElementById("loginOverlay").style.display = "none";
   },
 
   setupTabs() {
@@ -98,6 +177,7 @@ const app = {
     displayNameInput.value = workspace.displayName || "";
 
     saveDisplayNameButton.onclick = async () => {
+      const context = this.requireContext(true);
       const displayName = displayNameInput.value.trim();
 
       if (!displayName) {
@@ -110,25 +190,38 @@ const app = {
 
       try {
         await workspace.saveDisplayName(displayName);
+      this.assertCurrent(context);
 
         this.renderAppTitle();
         await this.renderMembers();
+      this.assertCurrent(context);
 
         saveDisplayNameButton.textContent = "Sparat ✓";
       } catch (error) {
+        if (this.isStale(error, context)) return;
         console.error("Kunde inte spara namnet:", error);
 
         alert(`Kunde inte spara namnet: ${error.message}`);
 
         saveDisplayNameButton.textContent = "Spara namn";
       } finally {
+        if (!this.isCurrent(context)) return;
         saveDisplayNameButton.disabled = false;
 
         window.setTimeout(() => {
+          if (!this.isCurrent(context)) return;
           saveDisplayNameButton.textContent = "Spara namn";
         }, 1500);
       }
     };
+  },
+
+  isActiveWorkspaceOwner() {
+    const activeWorkspace = workspace.availableWorkspaces.find(item => {
+      return item.workspace_id === workspace.id;
+    });
+
+    return activeWorkspace?.is_owner === true;
   },
 
   setupMembers() {
@@ -140,7 +233,18 @@ const app = {
       return;
     }
 
+    inviteMemberButton.hidden = !this.isActiveWorkspaceOwner();
+    inviteMemberButton.onclick = null;
+
+    if (inviteMemberButton.hidden) {
+      return;
+    }
+
     inviteMemberButton.onclick = () => {
+      if (!this.isActiveWorkspaceOwner()) {
+        return;
+      }
+
       const dialog =
         document.getElementById("inviteMemberDialog");
 
@@ -184,7 +288,12 @@ const app = {
       };
 
       confirmButton.onclick = async event => {
+        const context = this.requireContext(true);
         event.preventDefault();
+
+        if (!this.isActiveWorkspaceOwner()) {
+          return;
+        }
 
         const normalizedEmail =
           emailInput.value.trim();
@@ -207,11 +316,14 @@ const app = {
             workspace.id,
             normalizedEmail
           );
+      this.assertCurrent(context);
 
           dialog.close();
 
           await this.renderMembers();
+      this.assertCurrent(context);
         } catch (error) {
+          if (this.isStale(error, context)) return;
           console.error(
             "Kunde inte bjuda in medlem:",
             error
@@ -221,6 +333,7 @@ const app = {
           errorMessage.textContent =
             error.message;
         } finally {
+          if (!this.isCurrent(context)) return;
           confirmButton.disabled = false;
           confirmButton.textContent = "Bjud in";
         }
@@ -272,11 +385,14 @@ const app = {
     });
 
     select.onchange = async () => {
+      const context = this.requireContext(true);
       select.disabled = true;
 
       try {
         await workspace.select(select.value);
+      this.assertCurrent(context);
       } catch (error) {
+        if (this.isStale(error, context)) return;
         console.error(
           "Kunde inte byta workspace:",
           error
@@ -293,6 +409,7 @@ const app = {
   },
 
   async renderMembers() {
+    const context = this.requireContext();
     const membersList =
       document.getElementById("members-list");
 
@@ -306,6 +423,7 @@ const app = {
     try {
       const members =
         await Storage.listMembers(workspace.id);
+      this.assertCurrent(context);
 
       if (!members.length) {
         membersList.textContent =
@@ -355,6 +473,7 @@ const app = {
         memberRow.appendChild(memberInfo);
 
         if (
+          this.isActiveWorkspaceOwner() &&
           !member.is_owner &&
           !member.is_current_user
         ) {
@@ -366,6 +485,11 @@ const app = {
           removeButton.textContent = "Ta bort";
 
           removeButton.onclick = async () => {
+      const context = this.requireContext(true);
+            if (!this.isActiveWorkspaceOwner()) {
+              return;
+            }
+
             const memberLabel =
               member.display_name ||
               member.email ||
@@ -387,9 +511,12 @@ const app = {
                 workspace.id,
                 member.user_id
               );
+      this.assertCurrent(context);
 
               await this.renderMembers();
+      this.assertCurrent(context);
             } catch (error) {
+              if (this.isStale(error, context)) return;
               console.error(
                 "Kunde inte ta bort medlem:",
                 error
@@ -410,6 +537,7 @@ const app = {
         membersList.appendChild(memberRow);
       });
     } catch (error) {
+      if (this.isStale(error, context)) return;
       console.error(
         "Kunde inte ladda medlemmar:",
         error
@@ -417,6 +545,7 @@ const app = {
 
       membersList.textContent =
         "Kunde inte ladda medlemmarna.";
+      throw error;
     }
   },
 

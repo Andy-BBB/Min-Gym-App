@@ -9,6 +9,7 @@ const Statistics = {
   isBound: false,
 
   async init() {
+    const context = app.requireContext(false);
     console.log("Statistics.init() startar.");
 
     this.bindEvents();
@@ -19,12 +20,14 @@ const Statistics = {
         Storage.loadStrengthGoals(),
         Storage.loadTrainingSettings()
       ]);
+      app.assertCurrent(context);
 
       this.strengthGoals = strengthGoals;
       this.weeklySessionGoal = settings?.weeklySessionGoal || 3;
       this.goalsAvailable = true;
       this.loadError = null;
     } catch (error) {
+      if (app.isStale(error, context)) throw error;
       console.error("Statistikmål kunde inte laddas:", error);
       this.goalsAvailable = false;
       this.loadError = error;
@@ -729,6 +732,7 @@ const Statistics = {
   },
 
   async saveStrengthGoal() {
+    const context = app.requireContext(true);
     const weight = Number(
       document.getElementById("strengthGoalWeight").value
     );
@@ -754,6 +758,7 @@ const Statistics = {
         weight,
         reps
       );
+      app.assertCurrent(context);
       const existingIndex = this.strengthGoals.findIndex(goal => {
         return goal.exerciseId === savedGoal.exerciseId;
       });
@@ -767,10 +772,12 @@ const Statistics = {
       document.getElementById("strengthGoalDialog").close();
       this.renderStrength();
     } catch (error) {
+      if (app.isStale(error, context)) return;
       console.error("Styrkemålet kunde inte sparas:", error);
       errorElement.textContent = `Kunde inte spara målet: ${error.message}`;
       errorElement.hidden = false;
     } finally {
+      if (!app.isCurrent(context)) return;
       saveButton.disabled = false;
       saveButton.textContent = "Spara mål";
     }
@@ -850,6 +857,7 @@ const Statistics = {
   },
 
   async saveWeeklyGoal() {
+    const context = app.requireContext(true);
     const input = document.getElementById("weeklySessionGoal");
     const button = document.getElementById("saveWeeklyGoalBtn");
     const message = document.getElementById("weeklyGoalMessage");
@@ -865,10 +873,13 @@ const Statistics = {
     message.textContent = "";
 
     try {
-      this.weeklySessionGoal = await Storage.saveWeeklySessionGoal(value);
+      const weeklyGoal = await Storage.saveWeeklySessionGoal(value);
+      app.assertCurrent(context);
+      this.weeklySessionGoal = weeklyGoal;
       this.renderHabits();
       document.getElementById("weeklyGoalMessage").textContent = "Veckomålet är sparat.";
     } catch (error) {
+      if (app.isStale(error, context)) return;
       console.error("Veckomålet kunde inte sparas:", error);
       message.textContent = `Kunde inte spara veckomålet: ${error.message}`;
       button.disabled = false;

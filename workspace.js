@@ -12,11 +12,13 @@ const workspace = {
     return `activeWorkspaceId:${this.userId}`;
   },
 
-  async load() {
+  async load(context) {
+    app.assertCurrent(context);
     const {
       data: { user },
       error: userError
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(context.accessToken);
+    app.assertCurrent(context);
 
     if (userError) {
       console.error(
@@ -31,7 +33,7 @@ const workspace = {
       throw new Error("Ingen inloggad användare hittades.");
     }
 
-    this.userId = user.id;
+    if (user.id !== context.userId) throw new Error("Sessionens identitet stämmer inte.");
 
     /*
      * Säkerställ att användaren har ett eget personligt
@@ -42,7 +44,8 @@ const workspace = {
       error: personalWorkspaceError
     } = await supabaseClient.rpc(
       "get_or_create_personal_workspace"
-    );
+    ).abortSignal(context.controller.signal).setHeader("Authorization", `Bearer ${context.accessToken}`);
+    app.assertCurrent(context);
 
     if (personalWorkspaceError) {
       console.error(
@@ -61,7 +64,8 @@ const workspace = {
       error: workspacesError
     } = await supabaseClient.rpc(
       "list_my_workspaces"
-    );
+    ).abortSignal(context.controller.signal).setHeader("Authorization", `Bearer ${context.accessToken}`);
+    app.assertCurrent(context);
 
     if (workspacesError) {
       console.error(
@@ -72,9 +76,9 @@ const workspace = {
       throw workspacesError;
     }
 
-    this.availableWorkspaces = workspaces || [];
+    const availableWorkspaces = workspaces || [];
 
-    if (!this.availableWorkspaces.length) {
+    if (!availableWorkspaces.length) {
       throw new Error(
         "Användaren har inte tillgång till något workspace."
       );
@@ -83,14 +87,14 @@ const workspace = {
     /*
      * Försök återanvända tidigare valt workspace.
      */
-    const storageKey = this.getStorageKey();
+    const storageKey = `activeWorkspaceId:${context.userId}`;
 
     const savedWorkspaceId = storageKey
       ? window.localStorage.getItem(storageKey)
       : null;
 
     let activeWorkspace =
-      this.availableWorkspaces.find(item => {
+      availableWorkspaces.find(item => {
         return item.workspace_id === savedWorkspaceId;
       });
 
@@ -100,7 +104,7 @@ const workspace = {
      */
     if (!activeWorkspace) {
       activeWorkspace =
-        this.availableWorkspaces.find(item => {
+        availableWorkspaces.find(item => {
           return item.workspace_id === personalWorkspaceId;
         });
     }
@@ -110,17 +114,10 @@ const workspace = {
      * anledning inte finns i listan.
      */
     if (!activeWorkspace) {
-      activeWorkspace = this.availableWorkspaces[0];
+      activeWorkspace = availableWorkspaces[0];
     }
 
-    this.id = activeWorkspace.workspace_id;
-
-    if (storageKey) {
-      window.localStorage.setItem(
-        storageKey,
-        this.id
-      );
-    }
+    const workspaceId = activeWorkspace.workspace_id;
 
     /*
      * Hämta den inloggade användarens visningsnamn i det
@@ -132,9 +129,12 @@ const workspace = {
     } = await supabaseClient
       .from("workspace_members")
       .select("display_name")
-      .eq("workspace_id", this.id)
+      .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
+      .abortSignal(context.controller.signal)
+      .setHeader("Authorization", `Bearer ${context.accessToken}`)
       .single();
+    app.assertCurrent(context);
 
     if (memberError) {
       console.error(
@@ -145,16 +145,17 @@ const workspace = {
       throw memberError;
     }
 
-    this.displayName = member.display_name || null;
-
-    console.log("Tillgängliga workspaces:", this.availableWorkspaces);
-    console.log("Aktivt workspace:", this.id);
-    console.log("Visningsnamn:", this.displayName);
-
-    return this.id;
+    Object.assign(this, {
+      id: workspaceId, userId: user.id, availableWorkspaces,
+      displayName: member.display_name || null
+    });
+    context.workspaceId = workspaceId;
+    window.localStorage.setItem(storageKey, workspaceId);
+    return workspaceId;
   },
 
   async select(workspaceId) {
+    app.requireContext(true);
     if (!workspaceId) {
       throw new Error("Workspace-id saknas.");
     }
@@ -186,10 +187,12 @@ const workspace = {
      * medlemmar och profil laddas om för det nya
      * workspacet.
      */
+    app.resetSession();
     window.location.reload();
   },
 
   async saveDisplayName(displayName) {
+    const context = app.requireContext(true);
     if (!this.id) {
       throw new Error("Aktivt workspace saknas.");
     }
@@ -204,7 +207,8 @@ const workspace = {
     const {
       data: { user },
       error: userError
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(context.accessToken);
+    app.assertCurrent(context);
 
     if (userError) {
       console.error(
@@ -224,8 +228,11 @@ const workspace = {
       .update({
         display_name: cleanDisplayName
       })
-      .eq("workspace_id", this.id)
-      .eq("user_id", user.id);
+      .eq("workspace_id", context.workspaceId)
+      .eq("user_id", user.id)
+      .abortSignal(context.controller.signal)
+      .setHeader("Authorization", `Bearer ${context.accessToken}`);
+    app.assertCurrent(context);
 
     if (updateError) {
       console.error(
@@ -242,12 +249,6 @@ const workspace = {
   },
 
   clear() {
-    const storageKey = this.getStorageKey();
-
-    if (storageKey) {
-      window.localStorage.removeItem(storageKey);
-    }
-
     this.id = null;
     this.displayName = null;
     this.userId = null;

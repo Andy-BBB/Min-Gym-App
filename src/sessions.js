@@ -3,6 +3,7 @@ const Sessions = {
   celebrationTimeoutIds: [],
 
   async init() {
+    const context = app.requireContext(false);
     console.log("Sessions.init() startar.");
 
     this.bindEvents();
@@ -369,6 +370,7 @@ const Sessions = {
   },
 
   async save() {
+    const context = app.requireContext(true);
     if (!this.activeSession) {
       alert("Det finns inget aktivt pass att spara.");
       return;
@@ -413,12 +415,16 @@ const Sessions = {
       const previousPersonalBests = History.calculatePB();
 
       await Storage.saveSession(savedSession);
+      app.assertCurrent(context);
 
       await Exercises.reload().catch(error => {
+        if (app.isStale(error, context)) return;
         console.error("Övningsbanken kunde inte laddas om:", error);
       });
+      app.assertCurrent(context);
 
       await History.load();
+      app.assertCurrent(context);
       History.render();
       History.renderPB();
 
@@ -465,12 +471,14 @@ const Sessions = {
 
       console.log("Sessions.save(): passet sparades.");
     } catch (error) {
+      if (app.isStale(error, context)) return;
       console.error("Sessions.save() misslyckades:", error);
 
       alert(
         `Kunde inte spara passet: ${error.message}`
       );
     } finally {
+      if (!app.isCurrent(context)) return;
       saveButton.disabled = false;
       saveButton.textContent = "Spara pass";
     }

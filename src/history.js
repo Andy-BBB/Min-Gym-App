@@ -1,8 +1,10 @@
 const History = {
   async init() {
+    const context = app.requireContext(false);
     console.log("History.init() startar.");
 
     await this.load();
+      app.assertCurrent(context);
     this.render();
     this.renderPB();
 
@@ -10,8 +12,10 @@ const History = {
   },
 
   async load() {
+    const context = app.requireContext(false);
     try {
       const loadedSessions = await Storage.loadSessions();
+      app.assertCurrent(context);
 
       app.state.sessions = loadedSessions;
 
@@ -21,6 +25,7 @@ const History = {
 
       return loadedSessions;
     } catch (error) {
+      if (app.isStale(error, context)) throw error;
       console.error("History.load() misslyckades:", error);
       throw error;
     }

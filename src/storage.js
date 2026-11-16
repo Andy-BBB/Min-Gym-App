@@ -1,15 +1,23 @@
 const Storage = {
+  async request(query, context) {
+    app.assertCurrent(context);
+    const result = await query.abortSignal(context.controller.signal)
+      .setHeader("Authorization", `Bearer ${context.accessToken}`);
+    app.assertCurrent(context);
+    return result;
+  },
   async loadExercises() {
-    if (!workspace.id) {
+    const context = app.requireContext(false);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await this.request(supabaseClient
       .from("exercise_library")
       .select("id, name")
-      .eq("workspace_id", workspace.id)
+      .eq("workspace_id", context.workspaceId)
       .eq("is_archived", false)
-      .order("name", { ascending: true });
+      .order("name", { ascending: true }), context);
 
     if (error) {
       throw error;
@@ -19,14 +27,15 @@ const Storage = {
   },
 
   async loadStrengthGoals() {
-    if (!workspace.id) {
+    const context = app.requireContext(false);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await this.request(supabaseClient
       .from("exercise_strength_goals")
       .select("id, exercise_id, target_weight_kg, target_reps")
-      .eq("workspace_id", workspace.id);
+      .eq("workspace_id", context.workspaceId), context);
 
     if (error) {
       throw error;
@@ -41,14 +50,15 @@ const Storage = {
   },
 
   async saveStrengthGoal(exerciseId, weight, reps) {
-    if (!workspace.id || !exerciseId) {
+    const context = app.requireContext(true);
+    if (!context.workspaceId || !exerciseId) {
       throw new Error("Workspace eller övning saknas.");
     }
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await this.request(supabaseClient
       .from("exercise_strength_goals")
       .upsert({
-        workspace_id: workspace.id,
+        workspace_id: context.workspaceId,
         exercise_id: exerciseId,
         target_weight_kg: Number(weight),
         target_reps: Number(reps),
@@ -57,7 +67,7 @@ const Storage = {
         onConflict: "workspace_id,exercise_id"
       })
       .select("id, exercise_id, target_weight_kg, target_reps")
-      .single();
+      .single(), context);
 
     if (error) {
       throw error;
@@ -72,15 +82,16 @@ const Storage = {
   },
 
   async loadTrainingSettings() {
-    if (!workspace.id) {
+    const context = app.requireContext(false);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await this.request(supabaseClient
       .from("workspace_training_settings")
       .select("weekly_session_goal")
-      .eq("workspace_id", workspace.id)
-      .maybeSingle();
+      .eq("workspace_id", context.workspaceId)
+      .maybeSingle(), context);
 
     if (error) {
       throw error;
@@ -92,21 +103,22 @@ const Storage = {
   },
 
   async saveWeeklySessionGoal(weeklySessionGoal) {
-    if (!workspace.id) {
+    const context = app.requireContext(true);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await this.request(supabaseClient
       .from("workspace_training_settings")
       .upsert({
-        workspace_id: workspace.id,
+        workspace_id: context.workspaceId,
         weekly_session_goal: Number(weeklySessionGoal),
         updated_at: new Date().toISOString()
       }, {
         onConflict: "workspace_id"
       })
       .select("weekly_session_goal")
-      .single();
+      .single(), context);
 
     if (error) {
       throw error;
@@ -116,18 +128,19 @@ const Storage = {
   },
 
   async loadPlans() {
-    if (!workspace.id) {
+    const context = app.requireContext(false);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
     const { data: workoutPlans, error: plansError } =
-      await supabaseClient
+      await this.request(supabaseClient
         .from("workout_plans")
         .select("id, name, sort_order, created_at")
-        .eq("workspace_id", workspace.id)
+        .eq("workspace_id", context.workspaceId)
         .eq("is_archived", false)
         .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }), context);
 
     if (plansError) {
       throw plansError;
@@ -140,7 +153,7 @@ const Storage = {
     const planIds = workoutPlans.map(plan => plan.id);
 
     const { data: planExercises, error: exercisesError } =
-      await supabaseClient
+      await this.request(supabaseClient
         .from("plan_exercises")
         .select(`
           id,
@@ -153,7 +166,7 @@ const Storage = {
           )
         `)
         .in("workout_plan_id", planIds)
-        .order("sort_order", { ascending: true });
+        .order("sort_order", { ascending: true }), context);
 
     if (exercisesError) {
       throw exercisesError;
@@ -164,7 +177,7 @@ const Storage = {
     let planSets = [];
 
     if (planExerciseIds.length > 0) {
-      const { data: sets, error: setsError } = await supabaseClient
+      const { data: sets, error: setsError } = await this.request(supabaseClient
         .from("plan_sets")
         .select(`
           id,
@@ -174,7 +187,7 @@ const Storage = {
           target_reps
         `)
         .in("plan_exercise_id", planExerciseIds)
-        .order("set_number", { ascending: true });
+        .order("set_number", { ascending: true }), context);
 
       if (setsError) {
         throw setsError;
@@ -211,6 +224,10 @@ const Storage = {
   // ==============================
 
   async inviteMember(workspaceId, email) {
+    const context = app.requireContext(true);
+    if (!app.isActiveWorkspaceOwner() || workspaceId !== context.workspaceId) {
+      throw new Error("Endast arbetsytans ägare får administrera medlemmar.");
+    }
     if (!workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
@@ -221,13 +238,13 @@ const Storage = {
       throw new Error("E-postadress saknas.");
     }
 
-    const { data: userId, error } = await supabaseClient.rpc(
+    const { data: userId, error } = await this.request(supabaseClient.rpc(
       "invite_workspace_member",
       {
         p_workspace_id: workspaceId,
         p_email: normalizedEmail
       }
-    );
+    ), context);
 
     if (error) {
       throw error;
@@ -237,16 +254,17 @@ const Storage = {
   },
 
   async listMembers(workspaceId) {
+    const context = app.requireContext(false);
     if (!workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
-    const { data, error } = await supabaseClient.rpc(
+    const { data, error } = await this.request(supabaseClient.rpc(
       "list_workspace_members",
       {
         p_workspace_id: workspaceId
       }
-    );
+    ), context);
 
     if (error) {
       throw error;
@@ -256,6 +274,10 @@ const Storage = {
   },
 
   async removeMember(workspaceId, userId) {
+    const context = app.requireContext(true);
+    if (!app.isActiveWorkspaceOwner() || workspaceId !== context.workspaceId) {
+      throw new Error("Endast arbetsytans ägare får administrera medlemmar.");
+    }
     if (!workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
@@ -264,13 +286,13 @@ const Storage = {
       throw new Error("Medlemmens id saknas.");
     }
 
-    const { error } = await supabaseClient.rpc(
+    const { error } = await this.request(supabaseClient.rpc(
       "remove_workspace_member",
       {
         p_workspace_id: workspaceId,
         p_user_id: userId
       }
-    );
+    ), context);
 
     if (error) {
       throw error;
@@ -278,10 +300,11 @@ const Storage = {
   },
 
     async listMyWorkspaces() {
+    const context = app.requireContext(false);
     const { data, error } =
-      await supabaseClient.rpc(
+      await this.request(supabaseClient.rpc(
         "list_my_workspaces"
-      );
+      ), context);
 
     if (error) {
       throw error;
@@ -291,7 +314,8 @@ const Storage = {
   },
 
   async savePlan(plan) {
-    if (!workspace.id) {
+    const context = app.requireContext(true);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
@@ -314,15 +338,15 @@ const Storage = {
       }))
     }));
 
-    const { data: planId, error } = await supabaseClient.rpc(
+    const { data: planId, error } = await this.request(supabaseClient.rpc(
       "save_workout_plan",
       {
-        p_workspace_id: workspace.id,
+        p_workspace_id: context.workspaceId,
         p_plan_id: plan.id || null,
         p_name: plan.name,
         p_exercises: exercises
       }
-    );
+    ), context);
 
     if (error) {
       throw error;
@@ -332,7 +356,8 @@ const Storage = {
   },
 
   async deletePlan(planId) {
-    if (!workspace.id) {
+    const context = app.requireContext(true);
+    if (!context.workspaceId) {
       throw new Error("Aktivt workspace saknas.");
     }
 
@@ -340,11 +365,11 @@ const Storage = {
       throw new Error("Uppläggets id saknas.");
     }
 
-    const { error } = await supabaseClient
+    const { error } = await this.request(supabaseClient
       .from("workout_plans")
       .delete()
       .eq("id", planId)
-      .eq("workspace_id", workspace.id);
+      .eq("workspace_id", context.workspaceId), context);
 
     if (error) {
       throw error;
@@ -352,12 +377,13 @@ const Storage = {
   },
 
   async loadSessions() {
-  if (!workspace.id) {
+    const context = app.requireContext(false);
+  if (!context.workspaceId) {
     throw new Error("Aktivt workspace saknas.");
   }
 
   const { data: workoutSessions, error: sessionsError } =
-    await supabaseClient
+    await this.request(supabaseClient
       .from("workout_sessions")
       .select(`
         id,
@@ -366,9 +392,9 @@ const Storage = {
         started_at,
         completed_at
       `)
-      .eq("workspace_id", workspace.id)
+      .eq("workspace_id", context.workspaceId)
       .not("completed_at", "is", null)
-      .order("completed_at", { ascending: false });
+      .order("completed_at", { ascending: false }), context);
 
   if (sessionsError) {
     throw sessionsError;
@@ -381,7 +407,7 @@ const Storage = {
   const sessionIds = workoutSessions.map(session => session.id);
 
   const { data: sessionExercises, error: exercisesError } =
-    await supabaseClient
+    await this.request(supabaseClient
       .from("session_exercises")
       .select(`
         id,
@@ -391,7 +417,7 @@ const Storage = {
         sort_order
       `)
       .in("workout_session_id", sessionIds)
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: true }), context);
 
   if (exercisesError) {
     throw exercisesError;
@@ -404,7 +430,7 @@ const Storage = {
 
   if (sessionExerciseIds.length > 0) {
     const { data: sets, error: setsError } =
-      await supabaseClient
+      await this.request(supabaseClient
         .from("session_sets")
         .select(`
           id,
@@ -414,7 +440,7 @@ const Storage = {
           reps
         `)
         .in("session_exercise_id", sessionExerciseIds)
-        .order("set_number", { ascending: true });
+        .order("set_number", { ascending: true }), context);
 
     if (setsError) {
       throw setsError;
@@ -456,7 +482,8 @@ const Storage = {
 },
 
 async saveSession(session) {
-  if (!workspace.id) {
+    const context = app.requireContext(true);
+  if (!context.workspaceId) {
     throw new Error("Aktivt workspace saknas.");
   }
 
@@ -486,16 +513,16 @@ async saveSession(session) {
     }))
   }));
 
-  const { data: sessionId, error } = await supabaseClient.rpc(
+  const { data: sessionId, error } = await this.request(supabaseClient.rpc(
     "save_workout_session",
     {
-      p_workspace_id: workspace.id,
+      p_workspace_id: context.workspaceId,
       p_workout_plan_id: session.planId,
       p_plan_name: session.planName,
       p_started_at: session.date,
       p_exercises: payload
     }
-  );
+  ), context);
 
   if (error) {
     throw error;

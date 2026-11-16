@@ -2,9 +2,11 @@ const Exercises = {
   items: [],
 
   async init() {
+    const context = app.requireContext(false);
     console.log("Exercises.init() startar.");
 
     await this.reload();
+      app.assertCurrent(context);
 
     console.log(
       `Exercises.init(): ${this.items.length} övningar hämtades.`
@@ -12,7 +14,10 @@ const Exercises = {
   },
 
   async reload() {
-    this.items = await Storage.loadExercises();
+    const context = app.requireContext(false);
+    const items = await Storage.loadExercises();
+    app.assertCurrent(context);
+    this.items = items;
     app.state.exerciseLibrary = this.items;
 
     return this.items;

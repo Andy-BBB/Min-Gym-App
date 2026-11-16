@@ -2,153 +2,100 @@ const loginOverlay = document.getElementById("loginOverlay");
 const loginEmail = document.getElementById("loginEmail");
 const loginBtn = document.getElementById("loginBtn");
 const loginMessage = document.getElementById("loginMessage");
-const logoutBtn = document.getElementById("logoutBtn");
-const logoutMessage = document.getElementById("logoutMessage");
 
-function showLogin() {
-  loginOverlay.style.display = "flex";
+function resetLoginForm() {
+  loginEmail.value = "";
+  loginBtn.disabled = false;
+  loginBtn.textContent = "Skicka inloggningslänk";
+  loginMessage.textContent = "";
 }
 
-function hideLogin() {
-  loginOverlay.style.display = "none";
-}
-
-async function startAppForSession(session) {
-  if (!session) {
-    workspace.clear();
-    showLogin();
-    return;
-  }
-
-  showLogin();
+async function startAppForSession(context) {
+  if (!app.isCurrent(context) || context.started) return;
+  context.started = true;
   loginMessage.textContent = "Förbereder din app...";
-
   try {
-    await workspace.load();
-    await app.init();
-
+    await workspace.load(context);
+    app.assertCurrent(context);
+    await app.init(context);
+    app.assertCurrent(context);
     loginMessage.textContent = "";
-    hideLogin();
-
-    console.log("Inloggad som:", session.user.email);
-    console.log("Workspace klart:", workspace.id);
+    app.reveal(context);
   } catch (error) {
+    if (app.isStale(error, context)) return;
+    // Fail closed, including partial initialization. Do not reveal cached data.
+    app.resetSession();
+    resetLoginForm();
+    loginMessage.textContent = "Kunde inte starta appen. Ladda om sidan och försök igen.";
     console.error("Kunde inte starta appen:", error);
-
-    workspace.clear();
-    showLogin();
-
-    loginMessage.textContent =
-      "Kunde inte starta appen. Ladda om sidan och försök igen.";
   }
-}
-
-async function updateLoginState() {
-  const {
-    data: { session },
-    error
-  } = await supabaseClient.auth.getSession();
-
-  if (error) {
-    console.error("Kunde inte läsa inloggningsstatus:", error);
-    showLogin();
-    return;
-  }
-
-  await startAppForSession(session);
 }
 
 loginBtn.addEventListener("click", async () => {
   const email = loginEmail.value.trim();
-
   if (!email) {
     loginMessage.textContent = "Ange din e-postadress.";
     return;
   }
-
+  const generation = app.generation;
   loginBtn.disabled = true;
   loginBtn.textContent = "Skickar...";
   loginMessage.textContent = "";
-
-  const redirectUrl =
-    `${window.location.origin}${window.location.pathname}`;
-
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: redirectUrl,
+      emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
       shouldCreateUser: false
     }
   });
-
+  if (generation !== app.generation) return;
   if (error) {
-    console.error("Fel vid inloggning:", error);
-
-    loginMessage.textContent =
-      `Inloggningen misslyckades: ${error.message}`;
-
+    loginMessage.textContent = `Inloggningen misslyckades: ${error.message}`;
     loginBtn.disabled = false;
     loginBtn.textContent = "Skicka inloggningslänk";
     return;
   }
-
-  loginMessage.textContent =
-    "Klart! Kontrollera din e-post och klicka på inloggningslänken.";
-
-  loginBtn.textContent = "Länk skickad";
+  loginMessage.textContent = "Klart! Kontrollera din e-post och klicka på inloggningslänken.";
+  // Permit another login attempt without requiring a reload after sign-out.
+  loginBtn.disabled = false;
+  loginBtn.textContent = "Skicka inloggningslänk";
 });
 
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    logoutBtn.disabled = true;
-    logoutBtn.textContent = "Loggar ut...";
+// Delegation survives replacement of authenticated markup during a reset.
+document.addEventListener("click", async event => {
+  if (!event.target.closest("#logoutBtn")) return;
+  if (!app.isInitialized) return;
+  app.resetSession();
+  resetLoginForm();
+  loginBtn.disabled = true;
+  loginMessage.textContent = "Loggar ut...";
+  const generation = app.generation;
+  const { error } = await supabaseClient.auth.signOut({ scope: "local" });
+  if (generation !== app.generation) return;
+  resetLoginForm();
+  if (error) {
+    loginBtn.disabled = true;
+    loginMessage.textContent = "Kunde inte logga ut. Ladda om sidan och försök igen.";
+  }
+});
 
-    if (logoutMessage) {
-      logoutMessage.textContent = "";
-    }
-
-    const { error } = await supabaseClient.auth.signOut({
-      scope: "local"
-    });
-
-    if (error) {
-      console.error("Utloggningen misslyckades:", error);
-
-      if (logoutMessage) {
-        logoutMessage.textContent =
-          "Kunde inte logga ut. Försök igen.";
-      }
-
-      logoutBtn.disabled = false;
-      logoutBtn.textContent = "Logga ut";
-      return;
-    }
-
-    workspace.clear();
-
-    if (window.app?.state) {
-      app.state.plans = [];
-      app.state.sessions = [];
-      app.state.exerciseLibrary = [];
-      Exercises.items = [];
-      app.isInitialized = false;
-    }
-
-    logoutBtn.disabled = false;
-    logoutBtn.textContent = "Logga ut";
-  });
-}
-
+// INITIAL_SESSION is the single startup source. Do not race it with getSession().
+app.resetSession();
+resetLoginForm();
 supabaseClient.auth.onAuthStateChange((event, session) => {
-  console.log("Auth-händelse:", event);
-
-  /*
-   * Körs efter att Supabase har avslutat sin interna
-   * hantering av autentiseringshändelsen.
-   */
-  window.setTimeout(() => {
-    startAppForSession(session);
-  }, 0);
+  const userId = session?.user?.id || null;
+  const context = app.context;
+  if (context?.userId === userId) {
+    // Same-user reauthentication/token refresh must preserve an active workout.
+    context.accessToken = session.access_token;
+    return;
+  }
+  if (!context && !session) return;
+  const next = app.resetSession(session);
+  resetLoginForm();
+  if (next) {
+    loginMessage.textContent = "Förbereder din app...";
+    // Only synchronous invalidation runs in the SDK's callback/lock.
+    window.setTimeout(() => { startAppForSession(next); }, 0);
+  }
 });
-
-updateLoginState();
